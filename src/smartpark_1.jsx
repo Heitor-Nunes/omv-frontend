@@ -40,52 +40,58 @@ const api = {
 };
 
 // ─────────────────────────────────────────
-// ESTILOS GLOBAIS
+// FONTES E CSS GLOBAL
 // ─────────────────────────────────────────
 const GF = `@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,700&display=swap');`;
 
 const CSS = `
 *, *::before, *::after { box-sizing:border-box; margin:0; padding:0; }
-html { width:100%; overflow-x:hidden; }
-body { width:100%; min-height:100vh; overflow-x:hidden; font-synthesis:none; -webkit-font-smoothing:antialiased; background:#F2EDE5; }
+html, body { width:100%; min-height:100vh; overflow-x:hidden; font-synthesis:none; -webkit-font-smoothing:antialiased; }
 #root { width:100%; min-height:100vh; }
+body { background:#F2EDE5; }
 
 @keyframes spin    { to { transform:rotate(360deg); } }
-@keyframes fadeIn  { from { opacity:0; transform:translateY(8px); } to { opacity:1; transform:translateY(0); } }
-@keyframes slideUp { from { opacity:0; transform:translateY(16px); } to { opacity:1; transform:translateY(0); } }
-@keyframes pulse   { 0%,100% { opacity:1; } 50% { opacity:.6; } }
-.fade-in  { animation:fadeIn .22s ease both; }
-.slide-up { animation:slideUp .28s ease both; }
+@keyframes fadeIn  { from { opacity:0; transform:translateY(6px); } to { opacity:1; transform:translateY(0); } }
+@keyframes slideUp { from { opacity:0; transform:translateY(14px); } to { opacity:1; transform:translateY(0); } }
+@keyframes shimmer { 0%{background-position:-200% 0} 100%{background-position:200% 0} }
+.fade-in  { animation:fadeIn .2s ease both; }
+.slide-up { animation:slideUp .25s ease both; }
+.skeleton { background:linear-gradient(90deg,#EDE8E0 25%,#F5F0EB 50%,#EDE8E0 75%); background-size:200% 100%; animation:shimmer 1.4s infinite; border-radius:8px; }
 
 ::-webkit-scrollbar { width:4px; }
 ::-webkit-scrollbar-thumb { background:#C9BAA5; border-radius:10px; }
 
-/* ── WIDESCREEN FIX ── */
+/* ── WIDESCREEN: sem bordas pretas ── */
 html, body, #root { margin:0 !important; padding:0 !important; }
-.app-shell { width:100vw; min-height:100vh; background:#F2EDE5; }
 
-/* ── MOBILE ── */
+/* ── MOBILE NAV: só aparece no mobile ── */
+.mobile-nav-bar { display:none; }
+
 @media (max-width:768px) {
-  .desktop-only { display:none !important; }
-  .main-content { padding:20px 14px 88px !important; }
-  .page-title   { font-size:19px !important; margin-bottom:16px !important; }
-  .dash-grid    { grid-template-columns:repeat(2,1fr) !important; gap:8px !important; }
-  .res-layout   { flex-direction:column !important; }
-  .res-panel    { width:100% !important; }
-  .pay-wrap     { flex:none !important; width:100% !important; }
-  .pay-layout   { flex-direction:column !important; }
-  .form-row     { flex-direction:column !important; }
-  .spot-card    { min-width:56px !important; }
-  .park-via     { width:100% !important; height:18px !important; }
-  .park-via span { writing-mode:horizontal-tb !important; }
-  .timer-num    { font-size:36px !important; }
-  .profile-grid { grid-template-columns:1fr !important; }
+  .mobile-nav-bar { display:flex !important; }
+  .desktop-header { display:none !important; }
+  .main-content   { padding:20px 14px 86px !important; }
+  .page-title     { font-size:18px !important; margin-bottom:14px !important; }
+  .dash-grid      { grid-template-columns:repeat(2,1fr) !important; gap:8px !important; }
+  .form-row       { flex-direction:column !important; }
+  .pay-wrap       { width:100% !important; flex:none !important; }
+  .pay-layout     { flex-direction:column !important; }
+  .profile-grid2  { grid-template-columns:1fr !important; }
+  .profile-stats  { grid-template-columns:repeat(2,1fr) !important; }
+  .spot-row-wrap  { gap:5px !important; }
+  .spot-card-item { min-width:0 !important; flex:1 1 0 !important; }
+  .park-section   { flex-direction:column !important; gap:6px !important; }
+  .park-via       { width:100% !important; height:16px !important; min-height:0 !important; }
+  .park-via-txt   { writing-mode:horizontal-tb !important; }
+  .model-btns     { grid-template-columns:repeat(3,1fr) !important; }
+  .timer-num      { font-size:36px !important; }
+  .pix-card       { flex-direction:column !important; }
 }
 @media (max-width:420px) {
-  .spot-card  { min-width:48px !important; }
-  .timer-num  { font-size:28px !important; }
-  .page-title { font-size:16px !important; }
-  .model-grid { grid-template-columns:repeat(3,1fr) !important; }
+  .page-title  { font-size:15px !important; }
+  .timer-num   { font-size:28px !important; }
+  .model-btns  { grid-template-columns:repeat(3,1fr) !important; }
+  .dash-grid   { grid-template-columns:1fr 1fr !important; }
 }
 `;
 
@@ -98,8 +104,10 @@ const C = {
   red:"#B05040", redBg:"#F5EAE8", redDark:"#8A3328",
   amber:"#A0700A", amberBg:"#F5EDD8", amberDark:"#7A5308",
   purple:"#7A5C9A", purpleBg:"#EDE5F5", purpleDark:"#4E3270",
+  teal:"#2A7B7B", tealBg:"#E5F5F5",
   sh:"0 2px 12px rgba(61,43,26,0.07)",
   shLg:"0 8px 36px rgba(61,43,26,0.10)",
+  shMd:"0 4px 18px rgba(61,43,26,0.09)",
 };
 
 const SM = {
@@ -110,7 +118,7 @@ const SM = {
 };
 
 const PPH = 80;
-const F = { head:"'Fraunces', serif", body:"'Plus Jakarta Sans', sans-serif" };
+const F   = { head:"'Fraunces',serif", body:"'Plus Jakarta Sans',sans-serif" };
 
 // ─────────────────────────────────────────
 // HELPERS
@@ -128,23 +136,29 @@ const nowTime  = () => { const n=new Date(); return `${String(n.getHours()).padS
 // UI BASE
 // ─────────────────────────────────────────
 const Spin = ({ size=18, color=C.navy }) => (
-  <div style={{ width:size, height:size, border:`2px solid ${C.border}`, borderTop:`2px solid ${color}`, borderRadius:"50%", animation:"spin .7s linear infinite", display:"inline-block", flexShrink:0 }}/>
+  <div style={{ width:size, height:size, border:`2px solid ${C.border}`, borderTop:`2px solid ${color}`,
+    borderRadius:"50%", animation:"spin .7s linear infinite", display:"inline-block", flexShrink:0 }}/>
 );
 
-const Card = ({ children, style={} }) => (
-  <div style={{ background:C.bgCard, borderRadius:20, padding:24, boxShadow:C.shLg, border:`1px solid ${C.border}`, ...style }}>{children}</div>
+const Card = ({ children, style={}, className="" }) => (
+  <div className={className} style={{ background:C.bgCard, borderRadius:20, padding:22,
+    boxShadow:C.shLg, border:`1px solid ${C.border}`, ...style }}>
+    {children}
+  </div>
 );
 
 const Btn = ({ children, onClick, v="primary", disabled=false, sm=false, full=false, style={} }) => {
   const vs = {
-    primary:{ bg:C.navy,   color:"#FBF5EE", border:"none" },
-    success:{ bg:C.green,  color:"#fff",    border:"none" },
-    ghost:  { bg:C.bgDark, color:C.textMid, border:"none" },
-    amber:  { bg:C.amber,  color:"#fff",    border:"none" },
-    danger: { bg:C.red,    color:"#fff",    border:"none" },
-    outline:{ bg:"transparent", color:C.navy, border:`1.5px solid ${C.navy}` },
+    primary: { bg:C.navy,        color:"#FBF5EE", border:"none" },
+    success: { bg:C.green,       color:"#fff",    border:"none" },
+    ghost:   { bg:C.bgDark,      color:C.textMid, border:"none" },
+    amber:   { bg:C.amber,       color:"#fff",    border:"none" },
+    danger:  { bg:C.red,         color:"#fff",    border:"none" },
+    outline: { bg:"transparent", color:C.navy,    border:`1.5px solid ${C.navy}` },
+    teal:    { bg:C.teal,        color:"#fff",    border:"none" },
+    purple:  { bg:C.purple,      color:"#fff",    border:"none" },
   };
-  const s = vs[v];
+  const s = vs[v] || vs.primary;
   return (
     <button onClick={!disabled?onClick:undefined} style={{
       background:s.bg, color:s.color, border:s.border,
@@ -152,7 +166,7 @@ const Btn = ({ children, onClick, v="primary", disabled=false, sm=false, full=fa
       fontSize:sm?12:14, fontWeight:600, fontFamily:F.body,
       cursor:disabled?"not-allowed":"pointer", opacity:disabled?.5:1,
       transition:"all .15s", display:"inline-flex", alignItems:"center",
-      justifyContent:"center", gap:7, width:full?"100%":"auto", ...style,
+      justifyContent:"center", gap:7, width:full?"100%":"auto", flexShrink:0, ...style,
     }}>{children}</button>
   );
 };
@@ -172,29 +186,32 @@ const Fld = ({ label, req=false, hint="", children }) => (
 const Inp = ({ value, onChange, placeholder, type="text", onKeyDown, maxLength, readOnly=false }) => (
   <input type={type} value={value} onChange={onChange} placeholder={placeholder}
     onKeyDown={onKeyDown} maxLength={maxLength} readOnly={readOnly}
-    style={{ width:"100%", padding:"11px 14px", borderRadius:10, border:`1.5px solid ${readOnly?C.bgDark:C.border}`,
+    style={{ width:"100%", padding:"11px 14px", borderRadius:10,
+      border:`1.5px solid ${readOnly?C.bgDark:C.border}`,
       fontSize:14, fontFamily:F.body, background:readOnly?C.bgDark:C.bgSoft,
-      outline:"none", color:C.text, transition:"border-color .15s" }}/>
+      outline:"none", color:C.text }}/>
 );
 
 const Err = ({ msg }) => msg ? (
   <div style={{ background:C.redBg, border:`1px solid ${C.red}30`, borderRadius:10,
-    padding:"10px 14px", marginBottom:14, fontSize:13, color:C.red, fontWeight:500, lineHeight:1.5, fontFamily:F.body }}>
-    ⚠ {msg}
-  </div>
+    padding:"10px 14px", marginBottom:14, fontSize:13, color:C.red,
+    fontWeight:500, lineHeight:1.5, fontFamily:F.body }}>⚠ {msg}</div>
 ) : null;
 
-const Bdg = ({ children, color, bg, round=false }) => (
-  <span style={{ fontSize:11, background:bg, color, borderRadius:round?20:6,
-    padding:round?"4px 12px":"3px 9px", fontWeight:600, fontFamily:F.body, whiteSpace:"nowrap" }}>
-    {children}
-  </span>
+const Bdg = ({ children, color, bg }) => (
+  <span style={{ fontSize:11, background:bg, color, borderRadius:20, padding:"3px 11px",
+    fontWeight:600, fontFamily:F.body, whiteSpace:"nowrap" }}>{children}</span>
+);
+
+const Tag = ({ children, color, bg }) => (
+  <span style={{ fontSize:10, background:bg, color, borderRadius:6, padding:"2px 8px",
+    fontWeight:700, fontFamily:F.body, whiteSpace:"nowrap", letterSpacing:.3 }}>{children}</span>
 );
 
 const Divider = ({ label="" }) => (
-  <div style={{ display:"flex", alignItems:"center", gap:12, margin:"18px 0" }}>
+  <div style={{ display:"flex", alignItems:"center", gap:12, margin:"16px 0" }}>
     <div style={{ flex:1, height:1, background:C.border }}/>
-    {label && <span style={{ fontSize:11, color:C.textLight, fontFamily:F.body, letterSpacing:.8, textTransform:"uppercase" }}>{label}</span>}
+    {label&&<span style={{ fontSize:10, color:C.textLight, fontFamily:F.body, letterSpacing:.8, textTransform:"uppercase", whiteSpace:"nowrap" }}>{label}</span>}
     <div style={{ flex:1, height:1, background:C.border }}/>
   </div>
 );
@@ -211,44 +228,41 @@ const CarIcon = ({ color="currentColor", size=34 }) => (
     <rect x="29" y="14" width="8"  height="10" rx="2" fill={color} opacity=".72"/>
     <rect x="3"  y="30" width="8"  height="10" rx="2" fill={color} opacity=".72"/>
     <rect x="29" y="30" width="8"  height="10" rx="2" fill={color} opacity=".72"/>
-    <rect x="14" y="19" width="12" height="8"  rx="2" fill="white"  opacity=".28"/>
+    <rect x="14" y="19" width="12" height="8"  rx="2" fill="white" opacity=".28"/>
   </svg>
 );
 
 // ─────────────────────────────────────────
-// SPOT CARD — 12 VAGAS (3 por via)
+// SPOT CARD
 // ─────────────────────────────────────────
 const SpotCard = ({ spot, isSel, onClick, clickable }) => {
-  const m = SM[spot.status] || SM.available;
+  const m   = SM[spot.status] || SM.available;
   const can = clickable && (spot.status==="available"||spot.status==="preferential");
   return (
-    <div className="spot-card" onClick={can?()=>onClick(spot):undefined} style={{
+    <div className="spot-card-item" onClick={can?()=>onClick(spot):undefined} style={{
       background:isSel?m.bd:m.bg, border:`2px solid ${m.bd}`, borderRadius:14,
-      padding:"10px 8px 8px", display:"flex", flexDirection:"column",
+      padding:"10px 6px 8px", display:"flex", flexDirection:"column",
       alignItems:"center", gap:3, cursor:can?"pointer":"default",
-      transition:"all .2s ease", boxShadow:isSel?`0 6px 20px ${m.bd}60`:C.sh,
-      transform:isSel?"scale(1.1)":"scale(1)", minWidth:72, userSelect:"none",
-      flex:"1 1 0",
+      transition:"all .18s", boxShadow:isSel?`0 6px 20px ${m.bd}55`:C.sh,
+      transform:isSel?"scale(1.08)":"scale(1)", flex:"1 1 0",
+      minWidth:64, userSelect:"none",
     }}>
-      <span style={{ fontSize:10, fontWeight:700, color:isSel?"#fff":m.tx, letterSpacing:1, fontFamily:F.body }}>
+      <span style={{ fontSize:9, fontWeight:700, color:isSel?"#fff":m.tx, letterSpacing:.8, fontFamily:F.body }}>
         {spot.row}{spot.spotNumber}
       </span>
-      <CarIcon size={28} color={isSel?"#fff":m.car}/>
-      <span style={{ fontSize:8, fontWeight:700, color:isSel?"rgba(255,255,255,.85)":m.tx, letterSpacing:.5, textTransform:"uppercase", fontFamily:F.body }}>
-        {m.lb}
-      </span>
+      <CarIcon size={26} color={isSel?"#fff":m.car}/>
+      <span style={{ fontSize:8, fontWeight:700, color:isSel?"rgba(255,255,255,.85)":m.tx,
+        letterSpacing:.4, textTransform:"uppercase", fontFamily:F.body }}>{m.lb}</span>
     </div>
   );
 };
 
 // ─────────────────────────────────────────
-// PARKING GRID — 12 VAGAS
-// A1-A3 | C7-C9
-// B4-B6 | D10-D12
+// PARKING GRID — 12 VAGAS RESPONSIVO
 // ─────────────────────────────────────────
 const ParkingGrid = ({ spots, selId, onSpotClick, clickable=false }) => {
   const RoadH = ({ label }) => (
-    <div style={{ height:24, background:C.bgDark, borderRadius:6, display:"flex",
+    <div style={{ height:22, background:C.bgDark, borderRadius:6, display:"flex",
       alignItems:"center", justifyContent:"center", position:"relative", overflow:"hidden", width:"100%" }}>
       <div style={{ position:"absolute", top:"50%", left:0, right:0, height:2,
         background:`repeating-linear-gradient(to right,${C.bgSoft} 0,${C.bgSoft} 12px,transparent 12px,transparent 24px)`,
@@ -258,13 +272,13 @@ const ParkingGrid = ({ spots, selId, onSpotClick, clickable=false }) => {
     </div>
   );
 
-  const Row = ({ row }) => (
+  const RowSpots = ({ row }) => (
     <div>
-      <div style={{ display:"flex", alignItems:"center", gap:5, marginBottom:6 }}>
-        <span style={{ fontSize:9, fontWeight:700, color:C.borderMid, letterSpacing:1.5, fontFamily:F.body }}>{row}</span>
+      <div style={{ display:"flex", alignItems:"center", gap:5, marginBottom:5 }}>
+        <span style={{ fontSize:9, fontWeight:700, color:C.borderMid, fontFamily:F.body }}>{row}</span>
         <div style={{ flex:1, height:1, background:C.border }}/>
       </div>
-      <div style={{ display:"flex", gap:6, flexWrap:"nowrap" }}>
+      <div className="spot-row-wrap" style={{ display:"flex", gap:6 }}>
         {spots.filter(s=>s.row===row).map(s=>(
           <SpotCard key={s._id} spot={s} isSel={selId===s._id} onClick={onSpotClick} clickable={clickable}/>
         ))}
@@ -272,37 +286,39 @@ const ParkingGrid = ({ spots, selId, onSpotClick, clickable=false }) => {
     </div>
   );
 
+  // Via central vertical
   const Via = () => (
-    <div className="park-via" style={{ width:32, background:C.bgDark, borderRadius:6,
+    <div className="park-via" style={{ width:28, background:C.bgDark, borderRadius:6,
       display:"flex", alignItems:"center", justifyContent:"center",
-      position:"relative", flexShrink:0 }}>
+      position:"relative", flexShrink:0, minHeight:80 }}>
       <div style={{ position:"absolute", left:"50%", top:0, bottom:0, width:2,
-        background:`repeating-linear-gradient(to bottom,${C.bgSoft} 0,${C.bgSoft} 12px,transparent 12px,transparent 24px)`,
+        background:`repeating-linear-gradient(to bottom,${C.bgSoft} 0,${C.bgSoft} 10px,transparent 10px,transparent 20px)`,
         transform:"translateX(-50%)"}}/>
-      <span className="park-via-label" style={{ fontSize:7, fontWeight:700, color:C.textLight,
+      <span className="park-via-txt" style={{ fontSize:7, fontWeight:700, color:C.textLight,
         textTransform:"uppercase", fontFamily:F.body, writingMode:"vertical-rl", position:"relative" }}>Via</span>
     </div>
   );
 
   const Block = ({ l, r, ll, rl }) => (
-    <div style={{ display:"flex", gap:0, alignItems:"stretch", width:"100%" }}>
-      <div style={{ flex:1, background:C.bgSoft, borderRadius:12, padding:"12px 10px", border:`1px solid ${C.border}`, minWidth:0 }}>
-        <div style={{ fontSize:8, fontWeight:700, color:C.amberDark, letterSpacing:1.2,
-          textTransform:"uppercase", fontFamily:F.body, marginBottom:8, textAlign:"center" }}>{ll}</div>
-        <Row row={l}/>
+    <div className="park-section" style={{ display:"flex", gap:0, alignItems:"stretch", width:"100%" }}>
+      <div style={{ flex:1, background:C.bgSoft, borderRadius:12, padding:"10px 8px", border:`1px solid ${C.border}`, minWidth:0 }}>
+        <div style={{ fontSize:8, fontWeight:700, color:C.amberDark, letterSpacing:1,
+          textTransform:"uppercase", fontFamily:F.body, marginBottom:7, textAlign:"center" }}>{ll}</div>
+        <RowSpots row={l}/>
       </div>
       <Via/>
-      <div style={{ flex:1, background:C.bgSoft, borderRadius:12, padding:"12px 10px", border:`1px solid ${C.border}`, minWidth:0 }}>
-        <div style={{ fontSize:8, fontWeight:700, color:C.navyMid, letterSpacing:1.2,
-          textTransform:"uppercase", fontFamily:F.body, marginBottom:8, textAlign:"center" }}>{rl}</div>
-        <Row row={r}/>
+      <div style={{ flex:1, background:C.bgSoft, borderRadius:12, padding:"10px 8px", border:`1px solid ${C.border}`, minWidth:0 }}>
+        <div style={{ fontSize:8, fontWeight:700, color:C.navyMid, letterSpacing:1,
+          textTransform:"uppercase", fontFamily:F.body, marginBottom:7, textAlign:"center" }}>{rl}</div>
+        <RowSpots row={r}/>
       </div>
     </div>
   );
 
   return (
     <div style={{ display:"flex", flexDirection:"column", gap:6, width:"100%" }}>
-      <div style={{ display:"flex", gap:12, marginBottom:8, flexWrap:"wrap" }}>
+      {/* Legenda */}
+      <div style={{ display:"flex", gap:10, marginBottom:6, flexWrap:"wrap" }}>
         {Object.entries(SM).map(([k,m])=>(
           <div key={k} style={{ display:"flex", alignItems:"center", gap:5 }}>
             <div style={{ width:8, height:8, borderRadius:2, background:m.bd, flexShrink:0 }}/>
@@ -360,24 +376,19 @@ const LoginScreen = ({ onLogin }) => {
       display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center",
       fontFamily:F.body, padding:"24px 16px" }}>
       <style>{GF+CSS}</style>
-
-      <div style={{ textAlign:"center", marginBottom:32 }}>
-        <div style={{ fontFamily:F.head, fontSize:28, fontWeight:700, color:C.navy, marginBottom:4, letterSpacing:"-0.5px" }}>
-          ◈ Estacionamento OMV
-        </div>
-        <p style={{ fontSize:13, color:C.textLight, fontFamily:F.body }}>Sistema Inteligente de Estacionamento</p>
+      <div style={{ textAlign:"center", marginBottom:28 }}>
+        <div style={{ fontFamily:F.head, fontSize:26, fontWeight:700, color:C.navy, marginBottom:4 }}>◈ Estacionamento OMV</div>
+        <p style={{ fontSize:13, color:C.textLight }}>Sistema Inteligente de Estacionamento</p>
       </div>
-
-      <div className="slide-up" style={{ background:C.bgCard, borderRadius:24, padding:"36px 32px",
+      <div className="slide-up" style={{ background:C.bgCard, borderRadius:24, padding:"34px 30px",
         boxShadow:C.shLg, border:`1px solid ${C.border}`, width:"100%", maxWidth:440 }}>
-        <h1 style={{ fontFamily:F.head, fontSize:24, fontWeight:600, color:C.navy, marginBottom:4 }}>
+        <h1 style={{ fontFamily:F.head, fontSize:22, fontWeight:700, color:C.navy, marginBottom:4 }}>
           {mode==="login"?"Bem-vindo de volta":"Criar conta"}
         </h1>
-        <p style={{ color:C.textLight, fontSize:13, marginBottom:24, fontFamily:F.body }}>
+        <p style={{ color:C.textLight, fontSize:13, marginBottom:22 }}>
           {mode==="login"?"Acesse para reservar sua vaga.":"Preencha seus dados para se cadastrar."}
         </p>
-
-        {mode==="register" && <>
+        {mode==="register"&&<>
           <Fld label="Nome Completo" req><Inp value={form.nomeCompleto} onChange={set("nomeCompleto")} placeholder="João da Silva"/></Fld>
           <div className="form-row" style={{ display:"flex", gap:10 }}>
             <div style={{ flex:1 }}><Fld label="Usuário" req><Inp value={form.username} onChange={set("username")} placeholder="joaosilva"/></Fld></div>
@@ -388,27 +399,23 @@ const LoginScreen = ({ onLogin }) => {
             <div style={{ flex:1 }}><Fld label="Endereço" req><Inp value={form.endereco} onChange={set("endereco")} placeholder="Rua, nº — Cidade"/></Fld></div>
           </div>
         </>}
-
         <Fld label="Email" req><Inp value={form.email} onChange={set("email")} placeholder="seu@email.com" onKeyDown={e=>e.key==="Enter"&&submit()}/></Fld>
         <Fld label="Senha" req><Inp type="password" value={form.password} onChange={set("password")} placeholder="••••••••" onKeyDown={e=>e.key==="Enter"&&submit()}/></Fld>
         <Err msg={err}/>
-
         <Btn onClick={submit} disabled={load} full style={{ padding:"13px", fontSize:15, marginTop:2 }}>
           {load?<Spin color="#FBF5EE"/>:(mode==="login"?"Entrar":"Criar conta")}
         </Btn>
-
-        <p style={{ textAlign:"center", marginTop:18, fontSize:13, color:C.textLight, fontFamily:F.body }}>
+        <p style={{ textAlign:"center", marginTop:16, fontSize:13, color:C.textLight }}>
           {mode==="login"?"Ainda não tem conta? ":"Já tem conta? "}
           <span onClick={()=>{setMode(mode==="login"?"register":"login");setErr("");}}
             style={{ color:C.navy, fontWeight:600, cursor:"pointer", textDecoration:"underline", textUnderlineOffset:2 }}>
             {mode==="login"?"Cadastre-se":"Entrar"}
           </span>
         </p>
-
-        {mode==="login" && (
-          <div style={{ marginTop:20, background:C.navyLight, borderRadius:12, padding:"12px 16px" }}>
-            <p style={{ fontSize:11, color:C.navyMid, fontWeight:700, marginBottom:3, letterSpacing:.8, textTransform:"uppercase", fontFamily:F.body }}>Acesso Admin</p>
-            <p style={{ fontSize:12, color:C.textMid, lineHeight:1.8, fontFamily:F.body }}>
+        {mode==="login"&&(
+          <div style={{ marginTop:18, background:C.navyLight, borderRadius:12, padding:"12px 14px" }}>
+            <p style={{ fontSize:11, color:C.navyMid, fontWeight:700, marginBottom:3, letterSpacing:.8, textTransform:"uppercase" }}>Acesso Admin</p>
+            <p style={{ fontSize:12, color:C.textMid, lineHeight:1.8 }}>
               <strong style={{ color:C.navy }}>admin@omv.com</strong> / <strong style={{ color:C.navy }}>admin123</strong>
             </p>
           </div>
@@ -425,21 +432,41 @@ const OverviewTab = ({ spots }) => {
   const avail = spots.filter(s=>s.status==="available").length;
   const occ   = spots.filter(s=>s.status==="occupied"||s.status==="reserved").length;
   const pref  = spots.filter(s=>s.status==="preferential").length;
+  const pct   = spots.length ? Math.round((occ/spots.length)*100) : 0;
+
   return (
     <div>
-      <div style={{ display:"flex", gap:10, marginBottom:22, flexWrap:"wrap" }}>
+      {/* Estatísticas */}
+      <div style={{ display:"flex", gap:10, marginBottom:18, flexWrap:"wrap" }}>
         {[
           { label:"Livres",        value:avail,        color:C.green,   bg:C.greenBg   },
           { label:"Ocupadas",      value:occ,          color:C.red,     bg:C.redBg     },
           { label:"Preferenciais", value:pref,         color:C.amber,   bg:C.amberBg   },
           { label:"Total",         value:spots.length, color:C.navyMid, bg:C.navyLight },
         ].map(p=>(
-          <div key={p.label} style={{ background:p.bg, borderRadius:14, padding:"14px 18px", border:`1px solid ${p.color}30`, flex:"1 1 0", minWidth:70 }}>
-            <div style={{ fontSize:26, fontFamily:F.head, fontWeight:700, color:p.color, lineHeight:1 }}>{p.value}</div>
+          <div key={p.label} style={{ background:p.bg, borderRadius:14, padding:"13px 16px",
+            border:`1px solid ${p.color}30`, flex:"1 1 0", minWidth:70 }}>
+            <div style={{ fontSize:24, fontFamily:F.head, fontWeight:700, color:p.color, lineHeight:1 }}>{p.value}</div>
             <div style={{ fontSize:10, color:p.color, fontWeight:600, marginTop:3, letterSpacing:.5, textTransform:"uppercase", fontFamily:F.body }}>{p.label}</div>
           </div>
         ))}
       </div>
+
+      {/* Barra de ocupação — MELHORIA 1 */}
+      <div style={{ background:C.bgCard, borderRadius:14, padding:"14px 18px", marginBottom:18, border:`1px solid ${C.border}`, boxShadow:C.sh }}>
+        <div style={{ display:"flex", justifyContent:"space-between", marginBottom:8 }}>
+          <span style={{ fontSize:12, fontWeight:600, color:C.textMid, fontFamily:F.body }}>Taxa de ocupação</span>
+          <span style={{ fontSize:12, fontWeight:700, color:pct>70?C.red:pct>40?C.amber:C.green, fontFamily:F.body }}>{pct}%</span>
+        </div>
+        <div style={{ height:8, background:C.bgDark, borderRadius:20, overflow:"hidden" }}>
+          <div style={{ height:"100%", width:`${pct}%`, borderRadius:20, transition:"width .6s ease",
+            background:pct>70?C.red:pct>40?C.amber:C.green }}/>
+        </div>
+        <p style={{ fontSize:11, color:C.textLight, marginTop:6, fontFamily:F.body }}>
+          {pct>70?"Estacionamento quase cheio":pct>40?"Ocupação moderada":"Boa disponibilidade de vagas"}
+        </p>
+      </div>
+
       <ParkingGrid spots={spots} selId={null} onSpotClick={()=>{}} clickable={false}/>
     </div>
   );
@@ -464,7 +491,7 @@ const ReserveTab = ({ spots, activeRes, onReserved, setTab }) => {
     if (!time||!date) { setErr("Selecione data e horário."); return; }
     const [y,mo,d] = date.split("-").map(Number);
     const [h,m]    = time.split(":").map(Number);
-    let start = new Date(y, mo-1, d, h, m, 0, 0);
+    let start = new Date(y,mo-1,d,h,m,0,0);
     if (start < new Date()) start = new Date();
     const tStr = `${String(start.getHours()).padStart(2,"0")}:${String(start.getMinutes()).padStart(2,"0")}`;
     const dStr = start.toISOString().split("T")[0];
@@ -477,21 +504,19 @@ const ReserveTab = ({ spots, activeRes, onReserved, setTab }) => {
   };
 
   if (activeRes) return (
-    <div style={{ maxWidth:480, margin:"0 auto" }}>
+    <div style={{ maxWidth:460, margin:"0 auto" }}>
       <Card style={{ borderLeft:`4px solid ${C.purple}` }}>
-        <div style={{ display:"flex", alignItems:"center", gap:14, marginBottom:16 }}>
-          <div style={{ width:48, height:48, borderRadius:"50%", background:C.purpleBg, display:"flex", alignItems:"center", justifyContent:"center" }}>
-            <CarIcon color={C.purple} size={26}/>
+        <div style={{ display:"flex", alignItems:"center", gap:14, marginBottom:14 }}>
+          <div style={{ width:46, height:46, borderRadius:"50%", background:C.purpleBg, display:"flex", alignItems:"center", justifyContent:"center", flexShrink:0 }}>
+            <CarIcon color={C.purple} size={24}/>
           </div>
           <div>
-            <p style={{ fontFamily:F.head, fontWeight:600, fontSize:18, color:C.purpleDark, margin:0 }}>Reserva Ativa</p>
+            <p style={{ fontFamily:F.head, fontWeight:600, fontSize:17, color:C.purpleDark, margin:0 }}>Reserva Ativa</p>
             <p style={{ fontSize:13, color:C.purple, margin:0, fontFamily:F.body }}>Vaga {activeRes.spotNumber} — às {activeRes.startTimeStr}</p>
           </div>
         </div>
-        {activeRes.placa && <p style={{ fontSize:13, color:C.textMid, marginBottom:14, fontFamily:F.body }}>🚗 {activeRes.placa}{activeRes.modelo&&` • ${activeRes.modelo}`}</p>}
-        <Btn v="outline" full onClick={()=>setTab("payment")} style={{ borderColor:C.purple, color:C.purpleDark }}>
-          Ir para Pagamento →
-        </Btn>
+        {activeRes.placa&&<p style={{ fontSize:13, color:C.textMid, marginBottom:14, fontFamily:F.body }}>🚗 {activeRes.placa}{activeRes.modelo&&` • ${activeRes.modelo}`}</p>}
+        <Btn v="outline" full onClick={()=>setTab("payment")} style={{ borderColor:C.purple, color:C.purpleDark }}>Ir para Pagamento →</Btn>
       </Card>
     </div>
   );
@@ -499,29 +524,29 @@ const ReserveTab = ({ spots, activeRes, onReserved, setTab }) => {
   return (
     <div>
       {step===1 ? (
-        <div className="res-layout" style={{ display:"flex", gap:24, alignItems:"flex-start", flexWrap:"wrap" }}>
+        <div style={{ display:"flex", gap:20, flexWrap:"wrap", alignItems:"flex-start" }}>
           <div style={{ flex:1, minWidth:0, maxWidth:"100%" }}>
-            <p style={{ fontSize:13, color:C.textLight, marginBottom:14, lineHeight:1.6, fontFamily:F.body }}>
+            <p style={{ fontSize:13, color:C.textLight, marginBottom:12, lineHeight:1.6, fontFamily:F.body }}>
               Toque em uma vaga <span style={{ color:C.green, fontWeight:600 }}>verde</span> ou <span style={{ color:C.amber, fontWeight:600 }}>amarela</span> para selecionar.
             </p>
-            <ParkingGrid spots={spots} selId={sel?._id} onSpotClick={s=>{ setSel(p=>p?._id===s._id?null:s); setErr(""); }} clickable={true}/>
+            <ParkingGrid spots={spots} selId={sel?._id}
+              onSpotClick={s=>{setSel(p=>p?._id===s._id?null:s);setErr("");}}
+              clickable={true}/>
           </div>
-          {sel && (
-            <div className="res-panel slide-up" style={{ width:260, flexShrink:0 }}>
+          {sel&&(
+            <div className="slide-up" style={{ width:240, flexShrink:0 }}>
               <Card>
-                <div style={{ display:"flex", alignItems:"center", gap:10, marginBottom:16, paddingBottom:14, borderBottom:`1px solid ${C.border}` }}>
-                  <CarIcon color={C.navy} size={30}/>
+                <div style={{ display:"flex", alignItems:"center", gap:10, marginBottom:14, paddingBottom:12, borderBottom:`1px solid ${C.border}` }}>
+                  <CarIcon color={C.navy} size={28}/>
                   <div>
-                    <p style={{ fontSize:11, color:C.textLight, textTransform:"uppercase", letterSpacing:.8, margin:0, fontFamily:F.body }}>Selecionada</p>
-                    <p style={{ fontSize:20, fontFamily:F.head, fontWeight:600, color:C.navy, margin:0 }}>
+                    <p style={{ fontSize:10, color:C.textLight, textTransform:"uppercase", letterSpacing:.8, margin:0, fontFamily:F.body }}>Selecionada</p>
+                    <p style={{ fontSize:18, fontFamily:F.head, fontWeight:700, color:C.navy, margin:0 }}>
                       {sel.row}{sel.spotNumber}
-                      {sel.status==="preferential"&&<span style={{ fontSize:9, color:C.amberDark, marginLeft:8, background:C.amberBg, padding:"2px 7px", borderRadius:4, fontFamily:F.body }}>PREFER.</span>}
+                      {sel.status==="preferential"&&<span style={{ fontSize:9, color:C.amberDark, marginLeft:7, background:C.amberBg, padding:"2px 6px", borderRadius:4, fontFamily:F.body }}>PREFER.</span>}
                     </p>
                   </div>
                 </div>
-                <p style={{ fontSize:12, color:C.textLight, marginBottom:14, fontFamily:F.body }}>
-                  R$ {PPH},00 / hora
-                </p>
+                <p style={{ fontSize:12, color:C.textLight, marginBottom:12, fontFamily:F.body }}>R$ {PPH},00 / hora</p>
                 <Btn full onClick={()=>setStep(2)} style={{ marginBottom:8 }}>Continuar →</Btn>
                 <Btn v="ghost" full onClick={()=>setSel(null)}>Cancelar</Btn>
               </Card>
@@ -529,23 +554,22 @@ const ReserveTab = ({ spots, activeRes, onReserved, setTab }) => {
           )}
         </div>
       ) : (
-        <div style={{ maxWidth:460, margin:"0 auto" }} className="slide-up">
-          <button onClick={()=>setStep(1)} style={{ background:"none", border:"none", cursor:"pointer", color:C.textLight, fontSize:13, fontFamily:F.body, marginBottom:16, display:"flex", alignItems:"center", gap:4 }}>
+        <div style={{ maxWidth:440, margin:"0 auto" }} className="slide-up">
+          <button onClick={()=>setStep(1)} style={{ background:"none", border:"none", cursor:"pointer", color:C.textLight, fontSize:13, fontFamily:F.body, marginBottom:14, display:"flex", alignItems:"center", gap:4 }}>
             ← Voltar ao mapa
           </button>
           <Card>
-            {/* Cabeçalho da vaga */}
-            <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:20, background:C.bg, borderRadius:12, padding:"12px 16px" }}>
+            <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:18, background:C.bg, borderRadius:12, padding:"12px 14px" }}>
               <div style={{ display:"flex", alignItems:"center", gap:10 }}>
-                <CarIcon color={C.navy} size={28}/>
+                <CarIcon color={C.navy} size={26}/>
                 <div>
-                  <p style={{ fontSize:11, color:C.textLight, textTransform:"uppercase", letterSpacing:.8, margin:0, fontFamily:F.body }}>Vaga</p>
-                  <p style={{ fontSize:18, fontFamily:F.head, fontWeight:600, color:C.navy, margin:0 }}>{sel?.row}{sel?.spotNumber}</p>
+                  <p style={{ fontSize:10, color:C.textLight, textTransform:"uppercase", letterSpacing:.8, margin:0, fontFamily:F.body }}>Vaga</p>
+                  <p style={{ fontSize:18, fontFamily:F.head, fontWeight:700, color:C.navy, margin:0 }}>{sel?.row}{sel?.spotNumber}</p>
                 </div>
               </div>
               <div style={{ textAlign:"right" }}>
-                <p style={{ fontSize:11, color:C.textLight, margin:0, fontFamily:F.body }}>Valor/hora</p>
-                <p style={{ fontSize:18, fontWeight:700, color:C.green, fontFamily:F.head, margin:0 }}>{fmtMoney(PPH)}</p>
+                <p style={{ fontSize:10, color:C.textLight, margin:0, fontFamily:F.body }}>Valor/hora</p>
+                <p style={{ fontSize:16, fontWeight:700, color:C.green, fontFamily:F.head, margin:0 }}>{fmtMoney(PPH)}</p>
               </div>
             </div>
 
@@ -554,13 +578,13 @@ const ReserveTab = ({ spots, activeRes, onReserved, setTab }) => {
               <div style={{ flex:1 }}>
                 <Fld label="Data" req>
                   <input type="date" value={date} min={todayStr()} onChange={e=>setDate(e.target.value)}
-                    style={{ width:"100%", padding:"11px 14px", borderRadius:10, border:`1.5px solid ${C.border}`, fontSize:14, fontFamily:F.body, background:C.bgSoft, color:C.text, outline:"none" }}/>
+                    style={{ width:"100%", padding:"11px 12px", borderRadius:10, border:`1.5px solid ${C.border}`, fontSize:13, fontFamily:F.body, background:C.bgSoft, color:C.text, outline:"none" }}/>
                 </Fld>
               </div>
               <div style={{ flex:1 }}>
                 <Fld label="Horário" req hint="início">
                   <input type="time" value={time} onChange={e=>setTime(e.target.value)}
-                    style={{ width:"100%", padding:"11px 14px", borderRadius:10, border:`1.5px solid ${C.border}`, fontSize:14, fontFamily:F.body, background:C.bgSoft, color:C.text, outline:"none" }}/>
+                    style={{ width:"100%", padding:"11px 12px", borderRadius:10, border:`1.5px solid ${C.border}`, fontSize:13, fontFamily:F.body, background:C.bgSoft, color:C.text, outline:"none" }}/>
                 </Fld>
               </div>
             </div>
@@ -570,14 +594,14 @@ const ReserveTab = ({ spots, activeRes, onReserved, setTab }) => {
               <Inp value={placa} onChange={e=>setPlaca(fmtPlaca(e.target.value))} placeholder="ABC1234" maxLength={7}/>
             </Fld>
             <Fld label="Modelo">
-              <div className="model-grid" style={{ display:"grid", gridTemplateColumns:"repeat(4,1fr)", gap:6 }}>
+              <div className="model-btns" style={{ display:"grid", gridTemplateColumns:"repeat(4,1fr)", gap:6 }}>
                 {MODELOS.map(mod=>(
                   <button key={mod} onClick={()=>setModelo(m=>m===mod?"":mod)} style={{
-                    padding:"8px 6px", borderRadius:10, textAlign:"center",
+                    padding:"8px 4px", borderRadius:10, textAlign:"center",
                     border:`1.5px solid ${modelo===mod?C.navy:C.border}`,
                     background:modelo===mod?C.navy:"transparent",
                     color:modelo===mod?"#FBF5EE":C.textMid,
-                    fontSize:12, fontWeight:600, cursor:"pointer", fontFamily:F.body, transition:"all .15s",
+                    fontSize:11, fontWeight:600, cursor:"pointer", fontFamily:F.body, transition:"all .15s",
                   }}>{mod}</button>
                 ))}
               </div>
@@ -598,43 +622,177 @@ const ReserveTab = ({ spots, activeRes, onReserved, setTab }) => {
 };
 
 // ─────────────────────────────────────────
+// MODAL DE PAGAMENTO SIMULADO — MELHORIA 2
+// ─────────────────────────────────────────
+const PaymentModal = ({ price, onConfirm, onClose }) => {
+  const [method, setMethod] = useState(""); // "pix" | "card" | "demo"
+  const [step, setStep]     = useState(1);  // 1=escolha, 2=simulação, 3=processando
+  const [card, setCard]     = useState({ num:"", nome:"", val:"", cvv:"" });
+  const pixCode = "00020126580014BR.GOV.BCB.PIX0136omv-estacionamento@pix.com520400005303986540" + price.replace(",",".") + "5802BR5920Estacionamento OMV6009SAO PAULO62070503***6304";
+
+  const handlePay = () => {
+    setStep(3);
+    setTimeout(()=>{ onConfirm(); }, 2200);
+  };
+
+  return (
+    <div style={{ position:"fixed", inset:0, background:"rgba(42,31,20,.6)", zIndex:400,
+      display:"flex", alignItems:"center", justifyContent:"center", padding:20 }} onClick={onClose}>
+      <div className="slide-up" style={{ background:C.bgCard, borderRadius:24, padding:28,
+        maxWidth:420, width:"100%", boxShadow:C.shLg }} onClick={e=>e.stopPropagation()}>
+
+        {step===3 ? (
+          <div style={{ textAlign:"center", padding:"16px 0" }}>
+            <Spin size={40} color={C.green}/>
+            <p style={{ fontFamily:F.head, fontSize:18, fontWeight:600, color:C.navy, marginTop:16 }}>Processando pagamento...</p>
+          </div>
+        ) : (
+          <>
+            <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:18 }}>
+              <h2 style={{ fontFamily:F.head, fontSize:18, fontWeight:700, color:C.navy }}>Confirmar Pagamento</h2>
+              <button onClick={onClose} style={{ background:"none", border:"none", cursor:"pointer", fontSize:18, color:C.textLight }}>✕</button>
+            </div>
+
+            <div style={{ background:C.greenBg, borderRadius:12, padding:"12px 16px", marginBottom:18, textAlign:"center" }}>
+              <p style={{ fontSize:11, color:C.greenDark, textTransform:"uppercase", letterSpacing:.8, fontFamily:F.body, margin:0 }}>Total a pagar</p>
+              <p style={{ fontSize:28, fontFamily:F.head, fontWeight:700, color:C.green, margin:0 }}>R$ {price}</p>
+            </div>
+
+            {step===1 && (
+              <>
+                <p style={{ fontSize:13, color:C.textMid, marginBottom:14, fontFamily:F.body }}>Escolha a forma de pagamento:</p>
+                <div style={{ display:"flex", flexDirection:"column", gap:10 }}>
+                  {/* PIX */}
+                  <button onClick={()=>{setMethod("pix");setStep(2);}} style={{
+                    display:"flex", alignItems:"center", gap:14, padding:"14px 16px",
+                    borderRadius:14, border:`2px solid ${C.border}`, background:C.bgSoft,
+                    cursor:"pointer", textAlign:"left", transition:"all .15s",
+                  }}>
+                    <div style={{ width:40, height:40, borderRadius:10, background:C.tealBg, display:"flex", alignItems:"center", justifyContent:"center", flexShrink:0 }}>
+                      <span style={{ fontSize:20 }}>⚡</span>
+                    </div>
+                    <div>
+                      <p style={{ fontSize:14, fontWeight:700, color:C.navy, margin:0, fontFamily:F.body }}>PIX</p>
+                      <p style={{ fontSize:11, color:C.textLight, margin:0, fontFamily:F.body }}>Aprovação instantânea</p>
+                    </div>
+                  </button>
+
+                  {/* Cartão */}
+                  <button onClick={()=>{setMethod("card");setStep(2);}} style={{
+                    display:"flex", alignItems:"center", gap:14, padding:"14px 16px",
+                    borderRadius:14, border:`2px solid ${C.border}`, background:C.bgSoft,
+                    cursor:"pointer", textAlign:"left", transition:"all .15s",
+                  }}>
+                    <div style={{ width:40, height:40, borderRadius:10, background:C.purpleBg, display:"flex", alignItems:"center", justifyContent:"center", flexShrink:0 }}>
+                      <span style={{ fontSize:20 }}>💳</span>
+                    </div>
+                    <div>
+                      <p style={{ fontSize:14, fontWeight:700, color:C.navy, margin:0, fontFamily:F.body }}>Cartão</p>
+                      <p style={{ fontSize:11, color:C.textLight, margin:0, fontFamily:F.body }}>Crédito ou débito</p>
+                    </div>
+                  </button>
+
+                  {/* DEMO — para apresentação do TCC */}
+                  <button onClick={()=>{setMethod("demo");handlePay();}} style={{
+                    display:"flex", alignItems:"center", gap:14, padding:"14px 16px",
+                    borderRadius:14, border:`2px dashed ${C.amber}`, background:C.amberBg,
+                    cursor:"pointer", textAlign:"left", transition:"all .15s",
+                  }}>
+                    <div style={{ width:40, height:40, borderRadius:10, background:"rgba(160,112,10,.15)", display:"flex", alignItems:"center", justifyContent:"center", flexShrink:0 }}>
+                      <span style={{ fontSize:20 }}>🎓</span>
+                    </div>
+                    <div>
+                      <p style={{ fontSize:14, fontWeight:700, color:C.amberDark, margin:0, fontFamily:F.body }}>Modo Demonstração</p>
+                      <p style={{ fontSize:11, color:C.amber, margin:0, fontFamily:F.body }}>Confirma sem pagamento real (TCC)</p>
+                    </div>
+                  </button>
+                </div>
+              </>
+            )}
+
+            {step===2 && method==="pix" && (
+              <div>
+                <div style={{ background:C.bgSoft, borderRadius:14, padding:16, marginBottom:16, textAlign:"center" }}>
+                  {/* QR Code simulado */}
+                  <div style={{ width:140, height:140, margin:"0 auto 12px", background:C.navy, borderRadius:10, display:"flex", alignItems:"center", justifyContent:"center" }}>
+                    <div style={{ display:"grid", gridTemplateColumns:"repeat(7,1fr)", gap:2, padding:8 }}>
+                      {Array.from({length:49}).map((_,i)=>(
+                        <div key={i} style={{ width:12, height:12, background:Math.random()>.45?"#FBF5EE":"transparent", borderRadius:1 }}/>
+                      ))}
+                    </div>
+                  </div>
+                  <p style={{ fontSize:11, color:C.textLight, fontFamily:F.body, marginBottom:8 }}>QR Code simulado para demonstração</p>
+                  <div style={{ background:C.bgCard, borderRadius:8, padding:"8px 12px", fontSize:9, color:C.textLight, fontFamily:"monospace", wordBreak:"break-all", textAlign:"left" }}>
+                    {pixCode.slice(0,60)}...
+                  </div>
+                </div>
+                <Btn v="teal" full onClick={handlePay}>✓ Simular Pagamento PIX</Btn>
+                <button onClick={()=>setStep(1)} style={{ marginTop:10, background:"none", border:"none", cursor:"pointer", color:C.textLight, fontSize:13, fontFamily:F.body, width:"100%" }}>← Voltar</button>
+              </div>
+            )}
+
+            {step===2 && method==="card" && (
+              <div>
+                <Fld label="Número do Cartão">
+                  <Inp value={card.num} onChange={e=>setCard(p=>({...p,num:e.target.value.replace(/\D/g,"").slice(0,16).replace(/(\d{4})/g,"$1 ").trim()}))} placeholder="0000 0000 0000 0000" maxLength={19}/>
+                </Fld>
+                <Fld label="Nome no Cartão">
+                  <Inp value={card.nome} onChange={e=>setCard(p=>({...p,nome:e.target.value.toUpperCase()}))} placeholder="JOÃO DA SILVA"/>
+                </Fld>
+                <div style={{ display:"flex", gap:10 }}>
+                  <div style={{ flex:1 }}><Fld label="Validade"><Inp value={card.val} onChange={e=>setCard(p=>({...p,val:e.target.value.replace(/\D/g,"").slice(0,4).replace(/(\d{2})(\d)/,"$1/$2")}))} placeholder="MM/AA" maxLength={5}/></Fld></div>
+                  <div style={{ flex:1 }}><Fld label="CVV"><Inp value={card.cvv} onChange={e=>setCard(p=>({...p,cvv:e.target.value.replace(/\D/g,"").slice(0,3)}))} placeholder="000" maxLength={3}/></Fld></div>
+                </div>
+                <div style={{ background:C.amberBg, borderRadius:10, padding:"8px 12px", marginBottom:14, border:`1px solid ${C.amber}30` }}>
+                  <p style={{ fontSize:11, color:C.amberDark, fontFamily:F.body, margin:0 }}>🎓 Modo demonstração — nenhuma cobrança real será feita.</p>
+                </div>
+                <Btn v="purple" full onClick={handlePay}>Confirmar Pagamento</Btn>
+                <button onClick={()=>setStep(1)} style={{ marginTop:10, background:"none", border:"none", cursor:"pointer", color:C.textLight, fontSize:13, fontFamily:F.body, width:"100%" }}>← Voltar</button>
+              </div>
+            )}
+          </>
+        )}
+      </div>
+    </div>
+  );
+};
+
+// ─────────────────────────────────────────
 // TAB: PAGAMENTO
 // ─────────────────────────────────────────
 const PaymentTab = ({ activeRes, onPaid }) => {
   const [secs, setSecs]         = useState(0);
   const [running, setRunning]   = useState(false);
-  const [confirm, setConfirm]   = useState(false);
+  const [showPayModal, setShowPayModal] = useState(false);
   const [paid, setPaid]         = useState(false);
   const [fp, setFp]             = useState(null);
   const [ft, setFt]             = useState(null);
   const [load, setLoad]         = useState(false);
-  const [history, setHistory]   = useState([]);
   const iv = useRef(null);
-
-  useEffect(()=>{ api.myHistory().then(setHistory).catch(()=>{}); },[paid]);
 
   useEffect(()=>{
     if (!activeRes) return;
     const elapsed = Math.max(0, Math.floor((new Date()-new Date(activeRes.startTime))/1000));
     setSecs(elapsed);
     if (new Date()>=new Date(activeRes.startTime)) setRunning(true);
-    setConfirm(false);
   },[activeRes?._id]);
 
   useEffect(()=>{
     clearInterval(iv.current);
-    if (running&&!confirm) iv.current=setInterval(()=>setSecs(s=>s+1),1000);
+    if (running) iv.current=setInterval(()=>setSecs(s=>s+1),1000);
     return ()=>clearInterval(iv.current);
-  },[running,confirm]);
+  },[running]);
 
   const price = ((secs/3600)*PPH).toFixed(2);
 
-  const doPay = async()=>{
+  const handlePayConfirm = async () => {
     setLoad(true);
     try {
       const { totalPrice } = await api.payReservation(activeRes._id);
-      setRunning(false); setPaid(true); setFp(totalPrice.toFixed(2)); setFt(fmtTime(secs));
-      setTimeout(()=>{ setPaid(false);setFp(null);setFt(null);setSecs(0);setConfirm(false);onPaid(); },5000);
+      clearInterval(iv.current);
+      setRunning(false); setPaid(true); setShowPayModal(false);
+      setFp(totalPrice.toFixed(2)); setFt(fmtTime(secs));
+      setTimeout(()=>{ setPaid(false);setFp(null);setFt(null);setSecs(0);onPaid(); },5000);
     } catch(e){ alert(e.message); }
     finally { setLoad(false); }
   };
@@ -644,7 +802,7 @@ const PaymentTab = ({ activeRes, onPaid }) => {
       <div style={{ width:72, height:72, borderRadius:"50%", background:C.greenBg, display:"flex", alignItems:"center", justifyContent:"center" }}>
         <svg width={30} height={30} viewBox="0 0 24 24" fill="none" stroke={C.green} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
       </div>
-      <p style={{ fontFamily:F.head, fontSize:26, fontWeight:700, color:C.green, margin:0 }}>Pagamento Confirmado!</p>
+      <p style={{ fontFamily:F.head, fontSize:24, fontWeight:700, color:C.green, margin:0 }}>Pagamento Confirmado!</p>
       <p style={{ fontSize:22, fontWeight:700, color:C.greenDark, fontFamily:F.head }}>{fmtMoney(fp)}</p>
       <p style={{ color:C.textLight, fontSize:13, fontFamily:F.body }}>Duração: {ft} — Obrigado!</p>
     </div>
@@ -652,22 +810,33 @@ const PaymentTab = ({ activeRes, onPaid }) => {
 
   return (
     <div className="pay-layout" style={{ display:"flex", gap:28, flexWrap:"wrap", alignItems:"flex-start" }}>
+      {showPayModal && (
+        <PaymentModal
+          price={price.replace(".",",")}
+          onConfirm={handlePayConfirm}
+          onClose={()=>setShowPayModal(false)}
+        />
+      )}
+
       <div className="pay-wrap" style={{ flex:"0 0 380px", display:"flex", flexDirection:"column", gap:14 }}>
         {!activeRes ? (
-          <div style={{ display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", minHeight:260, textAlign:"center", gap:14, padding:24 }}>
-            <div style={{ width:64, height:64, borderRadius:"50%", background:C.bgDark, display:"flex", alignItems:"center", justifyContent:"center" }}>
-              <CarIcon color={C.borderMid} size={32}/>
+          <div style={{ display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", minHeight:260, textAlign:"center", gap:12, padding:20 }}>
+            <div style={{ width:60, height:60, borderRadius:"50%", background:C.bgDark, display:"flex", alignItems:"center", justifyContent:"center" }}>
+              <CarIcon color={C.borderMid} size={30}/>
             </div>
             <p style={{ fontFamily:F.head, fontSize:18, fontWeight:600, color:C.textLight }}>Nenhuma reserva ativa</p>
-            <p style={{ fontSize:13, color:C.textLight, maxWidth:260, lineHeight:1.7, fontFamily:F.body }}>Reserve uma vaga na aba <strong style={{ color:C.textMid }}>Reservas</strong> para acompanhar aqui.</p>
+            <p style={{ fontSize:13, color:C.textLight, maxWidth:260, lineHeight:1.7, fontFamily:F.body }}>
+              Reserve uma vaga na aba <strong style={{ color:C.textMid }}>Reservas</strong> para acompanhar aqui.
+            </p>
           </div>
         ) : (
           <>
-            <div style={{ display:"flex", alignItems:"center", gap:14, background:C.purpleBg, borderRadius:16, padding:"14px 20px", border:`1.5px solid ${C.purple}` }}>
-              <CarIcon color={C.purple} size={36}/>
+            {/* Info da vaga */}
+            <div style={{ display:"flex", alignItems:"center", gap:14, background:C.purpleBg, borderRadius:16, padding:"14px 18px", border:`1.5px solid ${C.purple}` }}>
+              <CarIcon color={C.purple} size={34}/>
               <div>
                 <p style={{ fontSize:10, fontWeight:600, color:C.purple, letterSpacing:1.2, textTransform:"uppercase", margin:0, fontFamily:F.body }}>Sua Vaga</p>
-                <p style={{ fontFamily:F.head, fontSize:22, fontWeight:600, color:C.purpleDark, margin:0, lineHeight:1.1 }}>
+                <p style={{ fontFamily:F.head, fontSize:22, fontWeight:700, color:C.purpleDark, margin:0, lineHeight:1.1 }}>
                   {activeRes.spot?.row}{activeRes.spotNumber}
                 </p>
                 <p style={{ fontSize:12, color:C.purple, margin:0, fontFamily:F.body }}>
@@ -676,66 +845,29 @@ const PaymentTab = ({ activeRes, onPaid }) => {
               </div>
             </div>
 
+            {/* Cronômetro */}
             <div style={{ background:C.navy, borderRadius:18, padding:"20px 24px", textAlign:"center" }}>
               <p style={{ color:"#A89880", fontSize:10, fontWeight:600, letterSpacing:2, textTransform:"uppercase", marginBottom:8, fontFamily:F.body }}>
-                {running?(confirm?"Tempo da Reserva":"Tempo Decorrido"):"Aguardando Horário"}
+                {running?"Tempo Decorrido":"Aguardando Horário"}
               </p>
               <p className="timer-num" style={{ fontFamily:F.head, fontSize:44, fontWeight:700, color:"#FBF5EE", letterSpacing:2, lineHeight:1, margin:0 }}>
                 {fmtTime(secs)}
               </p>
+              {running && (
+                <p style={{ color:"#C4AA8A", fontSize:16, fontWeight:600, marginTop:10, fontFamily:F.head }}>
+                  {fmtMoney(price)}
+                </p>
+              )}
               {!running&&<p style={{ color:"#A89880", fontSize:11, marginTop:8, fontFamily:F.body }}>O cronômetro inicia no horário reservado.</p>}
             </div>
 
-            {running&&!confirm&&(
-              <Btn v="amber" onClick={()=>{clearInterval(iv.current);setConfirm(true);}} full style={{ padding:"13px" }}>
-                Pagar a Reserva
+            {/* Botão pagar */}
+            {running && (
+              <Btn v="amber" onClick={()=>setShowPayModal(true)} full style={{ padding:"13px" }}>
+                Pagar Reserva — {fmtMoney(price)}
               </Btn>
             )}
-            {confirm&&(
-              <Card style={{ padding:"18px 20px" }} className="slide-up">
-                <p style={{ fontFamily:F.head, fontSize:16, fontWeight:600, color:C.navy, marginBottom:14 }}>Resumo da Reserva</p>
-                <div style={{ display:"flex", justifyContent:"space-between", marginBottom:8 }}>
-                  <span style={{ fontSize:13, color:C.textMid, fontFamily:F.body }}>Duração</span>
-                  <span style={{ fontSize:13, fontWeight:600, color:C.navy, fontFamily:F.body }}>{fmtTime(secs)}</span>
-                </div>
-                <div style={{ display:"flex", justifyContent:"space-between", padding:"10px 0", borderTop:`1px solid ${C.border}`, marginBottom:16 }}>
-                  <span style={{ fontSize:14, fontWeight:700, color:C.navy, fontFamily:F.body }}>Total</span>
-                  <span style={{ fontSize:22, fontWeight:700, color:C.green, fontFamily:F.head }}>{fmtMoney(price)}</span>
-                </div>
-                <div style={{ display:"flex", gap:8 }}>
-                  <Btn v="success" onClick={doPay} disabled={load} full>{load?<Spin color="#fff"/>:"Confirmar Pagamento"}</Btn>
-                  <Btn v="ghost" onClick={()=>{setConfirm(false);setRunning(true);}}>Voltar</Btn>
-                </div>
-              </Card>
-            )}
           </>
-        )}
-      </div>
-
-      {/* Histórico */}
-      <div style={{ flex:1, minWidth:200 }}>
-        <h3 style={{ fontFamily:F.head, fontSize:16, fontWeight:600, color:C.navy, marginBottom:14 }}>Histórico de Pagamentos</h3>
-        {history.length===0 ? (
-          <p style={{ fontSize:13, color:C.textLight, fontFamily:F.body }}>Nenhum pagamento realizado ainda.</p>
-        ) : (
-          <div style={{ display:"flex", flexDirection:"column", gap:8 }}>
-            {history.map(r=>(
-              <div key={r._id} style={{ background:C.bgCard, borderRadius:14, padding:"12px 16px", border:`1px solid ${C.border}`, boxShadow:C.sh }}>
-                <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:4, gap:8, flexWrap:"wrap" }}>
-                  <span style={{ fontFamily:F.head, fontSize:15, fontWeight:600, color:C.navy }}>Vaga {r.spotNumber}</span>
-                  <Bdg color={C.greenDark} bg={C.greenBg} round>{fmtMoney(r.totalPrice)}</Bdg>
-                </div>
-                <p style={{ fontSize:11, color:C.textLight, margin:0, fontFamily:F.body }}>
-                  {fmtDate(r.createdAt)} • {fmtTime(r.totalSeconds||0)}{r.placa&&` • ${r.placa}`}
-                </p>
-              </div>
-            ))}
-            <div style={{ background:C.navyLight, borderRadius:12, padding:"10px 14px" }}>
-              <p style={{ fontSize:12, color:C.navyMid, fontWeight:600, fontFamily:F.body }}>
-                Total gasto: <strong style={{ fontFamily:F.head, fontSize:14 }}>{fmtMoney(history.reduce((a,r)=>a+(r.totalPrice||0),0))}</strong>
-              </p>
-            </div>
-          </div>
         )}
       </div>
     </div>
@@ -743,85 +875,105 @@ const PaymentTab = ({ activeRes, onPaid }) => {
 };
 
 // ─────────────────────────────────────────
-// TAB: PERFIL DO USUÁRIO
+// TAB: MINHA CONTA — MELHORIA 3
 // ─────────────────────────────────────────
 const ProfileTab = ({ user, onLogout }) => {
   const [history, setHistory] = useState([]);
   const [load, setLoad]       = useState(true);
+  const [activeRes, setActiveRes] = useState(null);
   const cpfFmt = user.cpf ? user.cpf.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/,"$1.$2.$3-$4") : "—";
 
   useEffect(()=>{
-    api.myHistory().then(h=>{ setHistory(h); setLoad(false); }).catch(()=>setLoad(false));
+    Promise.all([api.myHistory(), api.myReservation()])
+      .then(([h,r])=>{ setHistory(h); setActiveRes(r); })
+      .catch(()=>{})
+      .finally(()=>setLoad(false));
   },[]);
 
   const totalGasto = history.reduce((a,r)=>a+(r.totalPrice||0),0);
-  const totalHoras = history.reduce((a,r)=>a+(r.totalSeconds||0),0);
+  const totalSecs  = history.reduce((a,r)=>a+(r.totalSeconds||0),0);
 
   return (
-    <div style={{ maxWidth:700, margin:"0 auto" }}>
-      {/* Header do perfil */}
-      <div style={{ display:"flex", alignItems:"center", gap:18, marginBottom:24, background:C.bgCard, borderRadius:20, padding:"20px 24px", boxShadow:C.sh, border:`1px solid ${C.border}` }}>
-        <div style={{ width:60, height:60, borderRadius:"50%", background:C.navy, display:"flex", alignItems:"center", justifyContent:"center", fontSize:22, fontWeight:700, color:"#FBF5EE", fontFamily:F.head, flexShrink:0 }}>
+    <div style={{ maxWidth:680, margin:"0 auto" }}>
+      {/* Avatar + info */}
+      <div style={{ display:"flex", alignItems:"center", gap:18, marginBottom:20, background:C.bgCard, borderRadius:20, padding:"18px 22px", boxShadow:C.sh, border:`1px solid ${C.border}` }}>
+        <div style={{ width:58, height:58, borderRadius:"50%", background:C.navy, display:"flex", alignItems:"center", justifyContent:"center", fontSize:22, fontWeight:700, color:"#FBF5EE", fontFamily:F.head, flexShrink:0 }}>
           {(user.nomeCompleto?.[0]||user.email[0]).toUpperCase()}
         </div>
-        <div style={{ flex:1 }}>
-          <p style={{ fontFamily:F.head, fontSize:20, fontWeight:700, color:C.navy, margin:0 }}>{user.nomeCompleto||"—"}</p>
-          <p style={{ fontSize:13, color:C.textLight, margin:0, fontFamily:F.body }}>@{user.username||"—"} • {user.email}</p>
+        <div style={{ flex:1, minWidth:0 }}>
+          <p style={{ fontFamily:F.head, fontSize:18, fontWeight:700, color:C.navy, margin:0 }}>{user.nomeCompleto||"—"}</p>
+          <p style={{ fontSize:12, color:C.textLight, margin:0, fontFamily:F.body }}>@{user.username||"—"} • {user.email}</p>
         </div>
-        <Btn v="ghost" sm onClick={onLogout}>Sair</Btn>
+        <Btn v="ghost" sm onClick={onLogout} style={{ flexShrink:0 }}>Sair</Btn>
       </div>
 
+      {/* Reserva ativa — MELHORIA 4 */}
+      {activeRes && (
+        <div style={{ background:C.purpleBg, borderRadius:16, padding:"14px 18px", marginBottom:16, border:`1.5px solid ${C.purple}` }}>
+          <div style={{ display:"flex", alignItems:"center", gap:10 }}>
+            <div style={{ animation:"pulse 2s infinite" }}>
+              <div style={{ width:10, height:10, borderRadius:"50%", background:C.purple }}/>
+            </div>
+            <p style={{ fontFamily:F.body, fontSize:13, fontWeight:600, color:C.purpleDark, margin:0 }}>
+              Reserva ativa — Vaga {activeRes.spotNumber} às {activeRes.startTimeStr}
+              {activeRes.placa&&` • ${activeRes.placa}`}
+            </p>
+          </div>
+        </div>
+      )}
+
       {/* Estatísticas */}
-      <div className="profile-grid" style={{ display:"grid", gridTemplateColumns:"repeat(3,1fr)", gap:10, marginBottom:20 }}>
+      <div className="profile-stats" style={{ display:"grid", gridTemplateColumns:"repeat(3,1fr)", gap:10, marginBottom:16 }}>
         {[
-          { label:"Reservas realizadas", value:history.length,          color:C.purple, bg:C.purpleBg },
-          { label:"Total gasto",         value:fmtMoney(totalGasto),    color:C.green,  bg:C.greenBg  },
-          { label:"Tempo total",         value:fmtTime(totalHoras),     color:C.amber,  bg:C.amberBg  },
+          { label:"Reservas",    value:history.length,       color:C.purple, bg:C.purpleBg },
+          { label:"Total gasto", value:fmtMoney(totalGasto), color:C.green,  bg:C.greenBg  },
+          { label:"Tempo total", value:fmtTime(totalSecs),   color:C.amber,  bg:C.amberBg  },
         ].map(p=>(
-          <div key={p.label} style={{ background:p.bg, borderRadius:14, padding:"14px 16px", border:`1px solid ${p.color}30` }}>
-            <div style={{ fontSize:18, fontFamily:F.head, fontWeight:700, color:p.color, lineHeight:1.2 }}>{p.value}</div>
+          <div key={p.label} style={{ background:p.bg, borderRadius:14, padding:"12px 14px", border:`1px solid ${p.color}30` }}>
+            <div style={{ fontSize:16, fontFamily:F.head, fontWeight:700, color:p.color, lineHeight:1.2, wordBreak:"break-all" }}>{p.value}</div>
             <div style={{ fontSize:10, color:p.color, fontWeight:600, marginTop:4, letterSpacing:.5, textTransform:"uppercase", fontFamily:F.body }}>{p.label}</div>
           </div>
         ))}
       </div>
 
       {/* Dados pessoais */}
-      <Card style={{ marginBottom:16 }}>
-        <h3 style={{ fontFamily:F.head, fontSize:16, fontWeight:600, color:C.navy, marginBottom:16 }}>Dados Pessoais</h3>
-        <div className="profile-grid" style={{ display:"grid", gridTemplateColumns:"repeat(2,1fr)", gap:14 }}>
+      <Card style={{ marginBottom:14 }}>
+        <h3 style={{ fontFamily:F.head, fontSize:15, fontWeight:700, color:C.navy, marginBottom:14 }}>Dados Pessoais</h3>
+        <div className="profile-grid2" style={{ display:"grid", gridTemplateColumns:"repeat(2,1fr)", gap:14 }}>
           {[
-            ["Nome Completo", user.nomeCompleto||"—"],
-            ["Usuário",       `@${user.username||"—"}`],
-            ["Email",         user.email],
-            ["CPF",           cpfFmt],
-            ["Telefone",      user.telefone||"—"],
-            ["Endereço",      user.endereco||"—"],
+            ["Nome",      user.nomeCompleto||"—"],
+            ["Usuário",   `@${user.username||"—"}`],
+            ["Email",     user.email],
+            ["CPF",       cpfFmt],
+            ["Telefone",  user.telefone||"—"],
+            ["Endereço",  user.endereco||"—"],
           ].map(([k,v])=>(
             <div key={k}>
-              <p style={{ fontSize:11, color:C.textLight, textTransform:"uppercase", letterSpacing:.8, margin:"0 0 4px", fontFamily:F.body }}>{k}</p>
-              <p style={{ fontSize:14, color:C.navy, fontWeight:500, margin:0, fontFamily:F.body, wordBreak:"break-all" }}>{v}</p>
+              <p style={{ fontSize:10, color:C.textLight, textTransform:"uppercase", letterSpacing:.8, margin:"0 0 3px", fontFamily:F.body }}>{k}</p>
+              <p style={{ fontSize:13, color:C.navy, fontWeight:500, margin:0, fontFamily:F.body, wordBreak:"break-all" }}>{v}</p>
             </div>
           ))}
         </div>
       </Card>
 
-      {/* Histórico completo */}
+      {/* Histórico */}
       <Card>
-        <h3 style={{ fontFamily:F.head, fontSize:16, fontWeight:600, color:C.navy, marginBottom:16 }}>Histórico Completo</h3>
-        {load && <div style={{ display:"flex", justifyContent:"center", padding:"20px 0" }}><Spin/></div>}
-        {!load && history.length===0 && <p style={{ fontSize:13, color:C.textLight, fontFamily:F.body }}>Nenhuma reserva realizada ainda.</p>}
-        {!load && history.map((r,i)=>(
-          <div key={r._id} style={{ display:"flex", alignItems:"center", justifyContent:"space-between", padding:"12px 0", borderBottom:i<history.length-1?`1px solid ${C.border}`:"none", gap:10, flexWrap:"wrap" }}>
+        <h3 style={{ fontFamily:F.head, fontSize:15, fontWeight:700, color:C.navy, marginBottom:14 }}>Histórico de Pagamentos</h3>
+        {load&&<div style={{ display:"flex", justifyContent:"center", padding:"20px 0" }}><Spin/></div>}
+        {!load&&history.length===0&&<p style={{ fontSize:13, color:C.textLight, fontFamily:F.body }}>Nenhum pagamento ainda.</p>}
+        {!load&&history.map((r,i)=>(
+          <div key={r._id} style={{ display:"flex", alignItems:"center", justifyContent:"space-between",
+            padding:"11px 0", borderBottom:i<history.length-1?`1px solid ${C.border}`:"none", gap:10, flexWrap:"wrap" }}>
             <div style={{ display:"flex", alignItems:"center", gap:12 }}>
-              <div style={{ width:36, height:36, borderRadius:10, background:C.navyLight, display:"flex", alignItems:"center", justifyContent:"center", flexShrink:0 }}>
-                <CarIcon color={C.navyMid} size={18}/>
+              <div style={{ width:34, height:34, borderRadius:10, background:C.navyLight, display:"flex", alignItems:"center", justifyContent:"center", flexShrink:0 }}>
+                <CarIcon color={C.navyMid} size={16}/>
               </div>
               <div>
-                <p style={{ fontFamily:F.head, fontSize:14, fontWeight:600, color:C.navy, margin:0 }}>Vaga {r.spotNumber} {r.placa&&`• ${r.placa}`}</p>
+                <p style={{ fontFamily:F.body, fontSize:13, fontWeight:600, color:C.navy, margin:0 }}>Vaga {r.spotNumber}{r.placa&&` • ${r.placa}`}</p>
                 <p style={{ fontSize:11, color:C.textLight, margin:0, fontFamily:F.body }}>{fmtDate(r.createdAt)} • {fmtTime(r.totalSeconds||0)}</p>
               </div>
             </div>
-            <Bdg color={C.greenDark} bg={C.greenBg} round>{fmtMoney(r.totalPrice)}</Bdg>
+            <Bdg color={C.greenDark} bg={C.greenBg}>{fmtMoney(r.totalPrice)}</Bdg>
           </div>
         ))}
       </Card>
@@ -830,20 +982,20 @@ const ProfileTab = ({ user, onLogout }) => {
 };
 
 // ─────────────────────────────────────────
-// MODAL USUÁRIO ADMIN
+// MODAL USUÁRIO (ADMIN)
 // ─────────────────────────────────────────
 const UserModal = ({ user, onClose, onToggle }) => {
   if (!user) return null;
-  const cpf = user.cpf ? user.cpf.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/,"$1.$2.$3-$4") : "—";
+  const cpf = user.cpf?user.cpf.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/,"$1.$2.$3-$4"):"—";
   return (
     <div style={{ position:"fixed", inset:0, background:"rgba(42,31,20,.55)", zIndex:300,
       display:"flex", alignItems:"center", justifyContent:"center", padding:20 }} onClick={onClose}>
       <div className="fade-in" style={{ background:C.bgCard, borderRadius:22, padding:26,
         maxWidth:400, width:"100%", boxShadow:C.shLg }} onClick={e=>e.stopPropagation()}>
-        <div style={{ display:"flex", alignItems:"center", gap:14, marginBottom:18 }}>
-          <div style={{ width:46, height:46, borderRadius:"50%", background:C.navy,
-            display:"flex", alignItems:"center", justifyContent:"center",
-            fontSize:16, fontWeight:700, color:"#FBF5EE", fontFamily:F.head, flexShrink:0 }}>
+        <div style={{ display:"flex", alignItems:"center", gap:14, marginBottom:16 }}>
+          <div style={{ width:44, height:44, borderRadius:"50%", background:C.navy, display:"flex",
+            alignItems:"center", justifyContent:"center", fontSize:16, fontWeight:700,
+            color:"#FBF5EE", fontFamily:F.head, flexShrink:0 }}>
             {(user.nomeCompleto?.[0]||user.email[0]).toUpperCase()}
           </div>
           <div>
@@ -854,15 +1006,11 @@ const UserModal = ({ user, onClose, onToggle }) => {
         {[["Email",user.email],["CPF",cpf],["Endereço",user.endereco||"—"],["Telefone",user.telefone||"—"],["Reservas",user.totalReservas||0],["Total Gasto",fmtMoney(user.totalGasto||0)],["Status",user.ativo?"Ativo":"Desativado"]].map(([k,v])=>(
           <div key={k} style={{ display:"flex", justifyContent:"space-between", padding:"8px 0", borderBottom:`1px solid ${C.border}` }}>
             <span style={{ fontSize:12, color:C.textLight, fontFamily:F.body }}>{k}</span>
-            <span style={{ fontSize:13, fontWeight:600, color:k==="Status"?(user.ativo?C.green:C.red):C.navy, textAlign:"right", maxWidth:"60%", fontFamily:F.body }}>{String(v)}</span>
+            <span style={{ fontSize:13, fontWeight:600, color:k==="Status"?(user.ativo?C.green:C.red):C.navy, textAlign:"right", maxWidth:"60%", fontFamily:F.body, wordBreak:"break-all" }}>{String(v)}</span>
           </div>
         ))}
         <div style={{ display:"flex", gap:8, marginTop:16 }}>
-          {!user.isAdmin&&onToggle&&(
-            <Btn v={user.ativo?"danger":"success"} sm onClick={()=>onToggle(user._id)} style={{ flex:1 }}>
-              {user.ativo?"Desativar":"Reativar"}
-            </Btn>
-          )}
+          {!user.isAdmin&&onToggle&&<Btn v={user.ativo?"danger":"success"} sm onClick={()=>onToggle(user._id)} style={{ flex:1 }}>{user.ativo?"Desativar":"Reativar"}</Btn>}
           <Btn v="ghost" onClick={onClose} style={{ flex:1 }}>Fechar</Btn>
         </div>
       </div>
@@ -873,7 +1021,7 @@ const UserModal = ({ user, onClose, onToggle }) => {
 // ─────────────────────────────────────────
 // TAB: ADMIN
 // ─────────────────────────────────────────
-const AdminTab = () => {
+const AdminTab = ({ spots }) => {
   const [view, setView]     = useState("dashboard");
   const [dash, setDash]     = useState(null);
   const [logs, setLogs]     = useState([]);
@@ -918,8 +1066,7 @@ const AdminTab = () => {
     <div>
       <UserModal user={selU} onClose={()=>setSelU(null)} onToggle={toggle}/>
 
-      {/* Tabs */}
-      <div style={{ display:"flex", gap:6, marginBottom:20, flexWrap:"wrap" }}>
+      <div style={{ display:"flex", gap:6, marginBottom:18, flexWrap:"wrap" }}>
         {[["dashboard","Dashboard"],["reservations","Reservas"],["users","Usuários"],["logs","Logs"]].map(([v,l])=>(
           <button key={v} onClick={()=>{setView(v);setSearch("");}} style={{
             padding:"8px 20px", borderRadius:20, background:view===v?C.navy:C.border,
@@ -929,48 +1076,54 @@ const AdminTab = () => {
         ))}
       </div>
 
-      {/* Busca */}
       {(view==="users"||view==="reservations")&&(
-        <div style={{ marginBottom:16 }}>
+        <div style={{ marginBottom:14 }}>
           <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Buscar..."
-            style={{ width:"100%", maxWidth:320, padding:"9px 16px", borderRadius:20,
+            style={{ width:"100%", maxWidth:300, padding:"9px 16px", borderRadius:20,
               border:`1.5px solid ${C.border}`, fontSize:13, fontFamily:F.body,
               background:C.bgSoft, color:C.text, outline:"none" }}/>
         </div>
       )}
 
-      {load&&<div style={{ display:"flex", justifyContent:"center", padding:"32px 0" }}><Spin/></div>}
+      {load&&<div style={{ display:"flex", justifyContent:"center", padding:"30px 0" }}><Spin/></div>}
 
       {/* DASHBOARD */}
       {!load&&view==="dashboard"&&dash&&(
         <div>
-          <div className="dash-grid" style={{ display:"grid", gridTemplateColumns:"repeat(4,1fr)", gap:10, marginBottom:22 }}>
+          <div className="dash-grid" style={{ display:"grid", gridTemplateColumns:"repeat(4,1fr)", gap:10, marginBottom:20 }}>
             {[
-              { label:"Usuários",      value:dash.totalUsers,            color:C.navy,   bg:C.navyLight },
-              { label:"Reservas",      value:dash.totalReservations,     color:C.purple, bg:C.purpleBg  },
-              { label:"Pagas",         value:dash.paidReservations,      color:C.green,  bg:C.greenBg   },
-              { label:"Receita",       value:fmtMoney(dash.totalRevenue),color:C.green,  bg:C.greenBg   },
-              { label:"Vagas Livres",  value:dash.spotsAvailable,        color:C.green,  bg:C.greenBg   },
-              { label:"Ocupadas",      value:dash.spotsOccupied,         color:C.red,    bg:C.redBg     },
-              { label:"Preferenciais", value:dash.spotsPreferential,     color:C.amber,  bg:C.amberBg   },
-              { label:"Ativas",        value:dash.activeReservations,    color:C.purple, bg:C.purpleBg  },
+              { label:"Usuários",     value:dash.totalUsers,            color:C.navy,   bg:C.navyLight },
+              { label:"Reservas",     value:dash.totalReservations,     color:C.purple, bg:C.purpleBg  },
+              { label:"Pagas",        value:dash.paidReservations,      color:C.green,  bg:C.greenBg   },
+              { label:"Receita",      value:fmtMoney(dash.totalRevenue),color:C.green,  bg:C.greenBg   },
+              { label:"Livres",       value:dash.spotsAvailable,        color:C.green,  bg:C.greenBg   },
+              { label:"Ocupadas",     value:dash.spotsOccupied,         color:C.red,    bg:C.redBg     },
+              { label:"Preferenciais",value:dash.spotsPreferential,     color:C.amber,  bg:C.amberBg   },
+              { label:"Ativas",       value:dash.activeReservations,    color:C.purple, bg:C.purpleBg  },
             ].map(p=>(
-              <div key={p.label} style={{ background:p.bg, borderRadius:14, padding:"13px 14px", border:`1px solid ${p.color}30` }}>
-                <div style={{ fontSize:20, fontFamily:F.head, fontWeight:700, color:p.color, lineHeight:1 }}>{p.value}</div>
-                <div style={{ fontSize:10, color:p.color, fontWeight:600, marginTop:3, letterSpacing:.5, textTransform:"uppercase", fontFamily:F.body }}>{p.label}</div>
+              <div key={p.label} style={{ background:p.bg, borderRadius:14, padding:"12px 14px", border:`1px solid ${p.color}30` }}>
+                <div style={{ fontSize:18, fontFamily:F.head, fontWeight:700, color:p.color, lineHeight:1 }}>{p.value}</div>
+                <div style={{ fontSize:9, color:p.color, fontWeight:700, marginTop:3, letterSpacing:.5, textTransform:"uppercase", fontFamily:F.body }}>{p.label}</div>
               </div>
             ))}
           </div>
+
+          {/* Mapa em tempo real no admin — MELHORIA 5 */}
+          <Card style={{ marginBottom:16, padding:18 }}>
+            <h3 style={{ fontFamily:F.head, fontSize:14, fontWeight:700, color:C.navy, marginBottom:14 }}>Mapa em Tempo Real</h3>
+            <ParkingGrid spots={spots} selId={null} onSpotClick={()=>{}} clickable={false}/>
+          </Card>
+
           {dash.revenueWeek?.length>0&&(
-            <Card style={{ padding:"18px 20px" }}>
-              <h3 style={{ fontFamily:F.head, fontSize:15, fontWeight:600, color:C.navy, marginBottom:14 }}>Receita — Últimos 7 dias</h3>
+            <Card style={{ padding:18 }}>
+              <h3 style={{ fontFamily:F.head, fontSize:14, fontWeight:700, color:C.navy, marginBottom:14 }}>Receita — Últimos 7 dias</h3>
               {dash.revenueWeek.map(d=>(
                 <div key={d._id} style={{ display:"flex", alignItems:"center", gap:10, marginBottom:7 }}>
-                  <span style={{ fontSize:11, color:C.textMid, minWidth:38, fontFamily:F.body }}>{d._id}</span>
+                  <span style={{ fontSize:11, color:C.textMid, minWidth:36, fontFamily:F.body }}>{d._id}</span>
                   <div style={{ flex:1, height:7, background:C.border, borderRadius:4, overflow:"hidden" }}>
                     <div style={{ height:"100%", background:C.green, borderRadius:4, width:`${Math.min(100,(d.total/500)*100)}%` }}/>
                   </div>
-                  <span style={{ fontSize:12, fontWeight:600, color:C.green, minWidth:64, textAlign:"right", fontFamily:F.body }}>{fmtMoney(d.total)}</span>
+                  <span style={{ fontSize:12, fontWeight:600, color:C.green, minWidth:60, textAlign:"right", fontFamily:F.body }}>{fmtMoney(d.total)}</span>
                 </div>
               ))}
             </Card>
@@ -988,14 +1141,14 @@ const AdminTab = () => {
                 <button onClick={()=>setSelU(r.user)} style={{ background:"none", border:"none", cursor:"pointer", fontSize:13, fontWeight:600, color:C.navy, fontFamily:F.body, textDecoration:"underline", textUnderlineOffset:2 }}>
                   {r.user?.nomeCompleto||r.user?.email}
                 </button>
-                <Bdg color={C.purple} bg={C.purpleBg} round>Vaga {r.spotNumber}</Bdg>
+                <Bdg color={C.purple} bg={C.purpleBg}>Vaga {r.spotNumber}</Bdg>
                 <span style={{ fontSize:12, color:C.textMid, fontFamily:F.body }}>às {r.startTimeStr}</span>
-                {r.placa&&<Bdg color={C.navyMid} bg={C.navyLight} round>{r.placa}</Bdg>}
+                {r.placa&&<Bdg color={C.navyMid} bg={C.navyLight}>{r.placa}</Bdg>}
                 {r.status==="paid"
-                  ? <Bdg color={C.greenDark} bg={C.greenBg} round>Pago {fmtMoney(r.totalPrice)}</Bdg>
+                  ? <Bdg color={C.greenDark} bg={C.greenBg}>Pago {fmtMoney(r.totalPrice)}</Bdg>
                   : r.status==="cancelled"
-                    ? <Bdg color={C.red} bg={C.redBg} round>Cancelada</Bdg>
-                    : <Bdg color={C.amberDark} bg={C.amberBg} round>Em uso</Bdg>}
+                    ? <Bdg color={C.red} bg={C.redBg}>Cancelada</Bdg>
+                    : <Bdg color={C.amberDark} bg={C.amberBg}>Em uso</Bdg>}
               </div>
               <div style={{ display:"flex", alignItems:"center", gap:8 }}>
                 <span style={{ fontSize:11, color:C.textLight, fontFamily:F.body }}>{fmtDate(r.createdAt)}</span>
@@ -1012,24 +1165,24 @@ const AdminTab = () => {
           {fU.map(u=>(
             <div key={u._id} style={{ ...row, cursor:"pointer" }} onClick={()=>setSelU(u)}>
               <div style={{ display:"flex", alignItems:"center", gap:11 }}>
-                <div style={{ width:38, height:38, borderRadius:"50%",
+                <div style={{ width:36, height:36, borderRadius:"50%",
                   background:u.isAdmin?C.navy:u.ativo?C.border:C.redBg,
                   display:"flex", alignItems:"center", justifyContent:"center",
-                  fontSize:14, fontWeight:700, color:u.isAdmin?"#FBF5EE":u.ativo?C.textMid:C.red,
+                  fontSize:13, fontWeight:700, color:u.isAdmin?"#FBF5EE":u.ativo?C.textMid:C.red,
                   fontFamily:F.head, flexShrink:0 }}>
                   {(u.nomeCompleto?.[0]||u.email[0]).toUpperCase()}
                 </div>
                 <div>
                   <p style={{ fontSize:13, fontWeight:600, color:C.navy, margin:0, fontFamily:F.body }}>
                     {u.nomeCompleto||u.email}
-                    {u.username&&<span style={{ fontSize:11, color:C.textLight, marginLeft:6, fontFamily:F.body }}>@{u.username}</span>}
+                    {u.username&&<span style={{ fontSize:11, color:C.textLight, marginLeft:6 }}>@{u.username}</span>}
                   </p>
                   <p style={{ fontSize:11, color:C.textLight, margin:0, fontFamily:F.body }}>{u.email}</p>
                 </div>
               </div>
               <div style={{ display:"flex", alignItems:"center", gap:7 }}>
-                {u.isAdmin&&<Bdg color={C.navyMid} bg={C.navyLight} round>Admin</Bdg>}
-                {!u.ativo&&<Bdg color={C.red} bg={C.redBg} round>Inativo</Bdg>}
+                {u.isAdmin&&<Tag color={C.navyMid} bg={C.navyLight}>Admin</Tag>}
+                {!u.ativo&&<Tag color={C.red} bg={C.redBg}>Inativo</Tag>}
                 <span style={{ fontSize:11, color:C.textLight, fontFamily:F.body }}>{new Date(u.createdAt).toLocaleDateString("pt-BR")}</span>
               </div>
             </div>
@@ -1064,21 +1217,22 @@ const AdminTab = () => {
 };
 
 // ─────────────────────────────────────────
-// NAV MOBILE
+// NAV MOBILE — só aparece no mobile via CSS
 // ─────────────────────────────────────────
 const MobileNav = ({ tab, setTab, isAdmin }) => {
   const tabs = [
     { id:"overview", icon:"🅿", label:"Vagas"    },
     { id:"reserve",  icon:"＋", label:"Reservar"  },
     { id:"payment",  icon:"⏱", label:"Pagar"     },
-    { id:"profile",  icon:"👤", label:"Perfil"    },
+    { id:"profile",  icon:"👤", label:"Conta"     },
     ...(isAdmin?[{ id:"admin", icon:"⚙", label:"Admin" }]:[]),
   ];
   return (
-    <div style={{ position:"fixed", bottom:0, left:0, right:0, zIndex:200,
+    <div className="mobile-nav-bar" style={{
+      position:"fixed", bottom:0, left:0, right:0, zIndex:200,
       background:C.bgCard, borderTop:`1px solid ${C.border}`,
-      display:"flex", alignItems:"stretch",
-      boxShadow:"0 -4px 20px rgba(61,43,26,0.10)" }}>
+      alignItems:"stretch", boxShadow:"0 -4px 20px rgba(61,43,26,0.10)",
+    }}>
       {tabs.map(t=>(
         <button key={t.id} onClick={()=>setTab(t.id)} style={{
           flex:1, padding:"10px 4px 8px", border:"none",
@@ -1125,7 +1279,7 @@ export default function App() {
   const logout    = ()=>{ localStorage.removeItem("omv_token"); setUser(null); setSpots([]); setActiveRes(null); setTab("overview"); };
 
   if (booting) return (
-    <div style={{ minHeight:"100vh", width:"100vw", background:C.bg, display:"flex", alignItems:"center", justifyContent:"center" }}>
+    <div style={{ minHeight:"100vh", width:"100%", background:C.bg, display:"flex", alignItems:"center", justifyContent:"center" }}>
       <style>{GF+CSS}</style>
       <div style={{ textAlign:"center", display:"flex", flexDirection:"column", alignItems:"center", gap:12 }}>
         <Spin size={26}/>
@@ -1144,22 +1298,16 @@ export default function App() {
     ...(user.isAdmin?[{ id:"admin", label:"Admin" }]:[]),
   ];
 
-  const titles = {
-    overview:"Visão Geral",
-    reserve: "Reservar Vaga",
-    payment: "Pagamento",
-    profile: "Minha Conta",
-    admin:   "Painel Admin",
-  };
+  const titles = { overview:"Visão Geral", reserve:"Reservar Vaga", payment:"Pagamento", profile:"Minha Conta", admin:"Painel Admin" };
 
   return (
-    <div className="app-shell">
+    <div style={{ width:"100%", minHeight:"100vh", background:C.bg, fontFamily:F.body }}>
       <style>{GF+CSS}</style>
 
-      {/* HEADER DESKTOP */}
-      <header className="desktop-only" style={{ background:C.bgCard, borderBottom:`1px solid ${C.border}`, position:"sticky", top:0, zIndex:100, width:"100%" }}>
+      {/* HEADER DESKTOP — some no mobile via CSS */}
+      <header className="desktop-header" style={{ background:C.bgCard, borderBottom:`1px solid ${C.border}`, position:"sticky", top:0, zIndex:100, width:"100%" }}>
         <div style={{ width:"100%", padding:"0 48px", height:62, display:"flex", alignItems:"center", justifyContent:"space-between", gap:16 }}>
-          <div style={{ fontFamily:F.head, fontSize:20, fontWeight:700, color:C.navy, whiteSpace:"nowrap", letterSpacing:"-0.3px" }}>
+          <div style={{ fontFamily:F.head, fontSize:20, fontWeight:700, color:C.navy, whiteSpace:"nowrap" }}>
             ◈ Estacionamento OMV
           </div>
           <nav style={{ display:"flex", gap:4 }}>
@@ -1168,8 +1316,7 @@ export default function App() {
                 padding:"8px 18px", borderRadius:20, border:"none",
                 background:tab===t.id?C.navy:"transparent",
                 color:tab===t.id?"#FBF5EE":C.textMid,
-                fontSize:13, fontWeight:600, cursor:"pointer",
-                fontFamily:F.body, transition:"all .15s", whiteSpace:"nowrap",
+                fontSize:13, fontWeight:600, cursor:"pointer", fontFamily:F.body, transition:"all .15s", whiteSpace:"nowrap",
               }}>{t.label}</button>
             ))}
           </nav>
@@ -1183,28 +1330,19 @@ export default function App() {
         </div>
       </header>
 
-      {/* HEADER MOBILE */}
-      <div style={{ background:C.bgCard, borderBottom:`1px solid ${C.border}`, padding:"12px 16px", display:"none" }}
-        className="mobile-header">
-        <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between" }}>
-          <span style={{ fontFamily:F.head, fontSize:16, fontWeight:700, color:C.navy }}>◈ OMV</span>
-          <span style={{ fontSize:12, color:C.textMid, fontFamily:F.body }}>{user.nomeCompleto?.split(" ")[0]||user.email}</span>
-        </div>
-      </div>
-
       {/* CONTEÚDO */}
-      <main className="main-content" style={{ width:"100%", padding:"32px 48px" }}>
-        <h1 style={{ fontFamily:F.head, fontSize:26, fontWeight:700, color:C.navy, marginBottom:22 }} className="page-title">
+      <main className="main-content" style={{ width:"100%", padding:"30px 48px" }}>
+        <h1 className="page-title" style={{ fontFamily:F.head, fontSize:24, fontWeight:700, color:C.navy, marginBottom:20 }}>
           {titles[tab]}
         </h1>
         {tab==="overview" && <OverviewTab spots={spots}/>}
         {tab==="reserve"  && <ReserveTab spots={spots} activeRes={activeRes} onReserved={()=>{loadSpots();loadRes();}} setTab={setTab}/>}
         {tab==="payment"  && <PaymentTab activeRes={activeRes} onPaid={()=>{loadSpots();setActiveRes(null);}}/>}
         {tab==="profile"  && <ProfileTab user={user} onLogout={logout}/>}
-        {tab==="admin" && user.isAdmin && <AdminTab/>}
+        {tab==="admin"&&user.isAdmin&&<AdminTab spots={spots}/>}
       </main>
 
-      {/* NAV MOBILE */}
+      {/* NAV MOBILE — controlada por CSS, não por JS */}
       <MobileNav tab={tab} setTab={setTab} isAdmin={user.isAdmin}/>
     </div>
   );
