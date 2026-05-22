@@ -28,6 +28,7 @@ const api = {
   spots:             ()                 => request("/spots"),
   myReservation:     ()                 => request("/reservations/mine"),
   myHistory:         ()                 => request("/reservations/history"),
+  resConfig:         ()                 => request("/reservations/config"),
   createReservation: (spotId,str,d,p,m) => request("/reservations", { method:"POST", body:JSON.stringify({ spotId, startTimeStr:str, startDate:d, placa:p, modelo:m }) }),
   payReservation:    (id)               => request(`/reservations/${id}/pay`,    { method:"POST" }),
   cancelReservation: (id)               => request(`/reservations/${id}/cancel`, { method:"POST" }),
@@ -40,7 +41,7 @@ const api = {
 };
 
 // ─────────────────────────────────────────
-// FONTES E CSS GLOBAL
+// ESTILOS
 // ─────────────────────────────────────────
 const GF = `@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,700&display=swap');`;
 
@@ -49,49 +50,46 @@ const CSS = `
 html, body { width:100%; min-height:100vh; overflow-x:hidden; font-synthesis:none; -webkit-font-smoothing:antialiased; }
 #root { width:100%; min-height:100vh; }
 body { background:#F2EDE5; }
+html, body, #root { margin:0 !important; padding:0 !important; }
 
 @keyframes spin    { to { transform:rotate(360deg); } }
 @keyframes fadeIn  { from { opacity:0; transform:translateY(6px); } to { opacity:1; transform:translateY(0); } }
 @keyframes slideUp { from { opacity:0; transform:translateY(14px); } to { opacity:1; transform:translateY(0); } }
-@keyframes shimmer { 0%{background-position:-200% 0} 100%{background-position:200% 0} }
+@keyframes pulse   { 0%,100%{opacity:1} 50%{opacity:.4} }
 .fade-in  { animation:fadeIn .2s ease both; }
 .slide-up { animation:slideUp .25s ease both; }
-.skeleton { background:linear-gradient(90deg,#EDE8E0 25%,#F5F0EB 50%,#EDE8E0 75%); background-size:200% 100%; animation:shimmer 1.4s infinite; border-radius:8px; }
 
 ::-webkit-scrollbar { width:4px; }
 ::-webkit-scrollbar-thumb { background:#C9BAA5; border-radius:10px; }
 
-/* ── WIDESCREEN: sem bordas pretas ── */
-html, body, #root { margin:0 !important; padding:0 !important; }
-
-/* ── MOBILE NAV: só aparece no mobile ── */
 .mobile-nav-bar { display:none; }
 
 @media (max-width:768px) {
-  .mobile-nav-bar { display:flex !important; }
-  .desktop-header { display:none !important; }
-  .main-content   { padding:20px 14px 86px !important; }
-  .page-title     { font-size:18px !important; margin-bottom:14px !important; }
-  .dash-grid      { grid-template-columns:repeat(2,1fr) !important; gap:8px !important; }
-  .form-row       { flex-direction:column !important; }
-  .pay-wrap       { width:100% !important; flex:none !important; }
-  .pay-layout     { flex-direction:column !important; }
-  .profile-grid2  { grid-template-columns:1fr !important; }
-  .profile-stats  { grid-template-columns:repeat(2,1fr) !important; }
-  .spot-row-wrap  { gap:5px !important; }
-  .spot-card-item { min-width:0 !important; flex:1 1 0 !important; }
-  .park-section   { flex-direction:column !important; gap:6px !important; }
-  .park-via       { width:100% !important; height:16px !important; min-height:0 !important; }
-  .park-via-txt   { writing-mode:horizontal-tb !important; }
-  .model-btns     { grid-template-columns:repeat(3,1fr) !important; }
-  .timer-num      { font-size:36px !important; }
-  .pix-card       { flex-direction:column !important; }
+  .mobile-nav-bar  { display:flex !important; }
+  .desktop-header  { display:none !important; }
+  .main-content    { padding:18px 14px 86px !important; }
+  .page-title      { font-size:18px !important; margin-bottom:14px !important; }
+  .dash-grid       { grid-template-columns:repeat(2,1fr) !important; gap:8px !important; }
+  .form-row        { flex-direction:column !important; }
+  .pay-wrap        { width:100% !important; flex:none !important; }
+  .pay-layout      { flex-direction:column !important; }
+  .profile-grid2   { grid-template-columns:1fr !important; }
+  .profile-stats   { grid-template-columns:repeat(2,1fr) !important; }
+  .spot-row-wrap   { gap:5px !important; }
+  .spot-card-item  { min-width:0 !important; flex:1 1 0 !important; }
+  .park-section    { flex-direction:column !important; gap:6px !important; }
+  .park-via        { width:100% !important; height:16px !important; min-height:0 !important; }
+  .park-via-txt    { writing-mode:horizontal-tb !important; }
+  .model-btns      { grid-template-columns:repeat(3,1fr) !important; }
+  .timer-num       { font-size:34px !important; }
+  .fee-row         { flex-direction:column !important; gap:6px !important; }
+  .res-sel-panel   { width:100% !important; }
 }
 @media (max-width:420px) {
-  .page-title  { font-size:15px !important; }
-  .timer-num   { font-size:28px !important; }
-  .model-btns  { grid-template-columns:repeat(3,1fr) !important; }
-  .dash-grid   { grid-template-columns:1fr 1fr !important; }
+  .page-title { font-size:15px !important; }
+  .timer-num  { font-size:26px !important; }
+  .dash-grid  { grid-template-columns:1fr 1fr !important; }
+  .model-btns { grid-template-columns:repeat(3,1fr) !important; }
 }
 `;
 
@@ -107,7 +105,6 @@ const C = {
   teal:"#2A7B7B", tealBg:"#E5F5F5",
   sh:"0 2px 12px rgba(61,43,26,0.07)",
   shLg:"0 8px 36px rgba(61,43,26,0.10)",
-  shMd:"0 4px 18px rgba(61,43,26,0.09)",
 };
 
 const SM = {
@@ -117,8 +114,10 @@ const SM = {
   reserved:     { bg:C.purpleBg, bd:C.purple, car:C.purple, tx:C.purpleDark, lb:"RESERVADA" },
 };
 
-const PPH = 80;
-const F   = { head:"'Fraunces',serif", body:"'Plus Jakarta Sans',sans-serif" };
+const F = { head:"'Fraunces',serif", body:"'Plus Jakarta Sans',sans-serif" };
+
+// Config padrão (sobrescrita pela API)
+let CFG = { pricePerHour:80, reservationFee:10, toleranceMinutes:5, noShowFine:20 };
 
 // ─────────────────────────────────────────
 // HELPERS
@@ -136,15 +135,11 @@ const nowTime  = () => { const n=new Date(); return `${String(n.getHours()).padS
 // UI BASE
 // ─────────────────────────────────────────
 const Spin = ({ size=18, color=C.navy }) => (
-  <div style={{ width:size, height:size, border:`2px solid ${C.border}`, borderTop:`2px solid ${color}`,
-    borderRadius:"50%", animation:"spin .7s linear infinite", display:"inline-block", flexShrink:0 }}/>
+  <div style={{ width:size, height:size, border:`2px solid ${C.border}`, borderTop:`2px solid ${color}`, borderRadius:"50%", animation:"spin .7s linear infinite", display:"inline-block", flexShrink:0 }}/>
 );
 
-const Card = ({ children, style={}, className="" }) => (
-  <div className={className} style={{ background:C.bgCard, borderRadius:20, padding:22,
-    boxShadow:C.shLg, border:`1px solid ${C.border}`, ...style }}>
-    {children}
-  </div>
+const Card = ({ children, style={} }) => (
+  <div style={{ background:C.bgCard, borderRadius:20, padding:22, boxShadow:C.shLg, border:`1px solid ${C.border}`, ...style }}>{children}</div>
 );
 
 const Btn = ({ children, onClick, v="primary", disabled=false, sm=false, full=false, style={} }) => {
@@ -158,7 +153,7 @@ const Btn = ({ children, onClick, v="primary", disabled=false, sm=false, full=fa
     teal:    { bg:C.teal,        color:"#fff",    border:"none" },
     purple:  { bg:C.purple,      color:"#fff",    border:"none" },
   };
-  const s = vs[v] || vs.primary;
+  const s = vs[v]||vs.primary;
   return (
     <button onClick={!disabled?onClick:undefined} style={{
       background:s.bg, color:s.color, border:s.border,
@@ -183,29 +178,27 @@ const Fld = ({ label, req=false, hint="", children }) => (
   </div>
 );
 
-const Inp = ({ value, onChange, placeholder, type="text", onKeyDown, maxLength, readOnly=false }) => (
+const Inp = ({ value, onChange, placeholder, type="text", onKeyDown, maxLength }) => (
   <input type={type} value={value} onChange={onChange} placeholder={placeholder}
-    onKeyDown={onKeyDown} maxLength={maxLength} readOnly={readOnly}
-    style={{ width:"100%", padding:"11px 14px", borderRadius:10,
-      border:`1.5px solid ${readOnly?C.bgDark:C.border}`,
-      fontSize:14, fontFamily:F.body, background:readOnly?C.bgDark:C.bgSoft,
-      outline:"none", color:C.text }}/>
+    onKeyDown={onKeyDown} maxLength={maxLength}
+    style={{ width:"100%", padding:"11px 14px", borderRadius:10, border:`1.5px solid ${C.border}`,
+      fontSize:14, fontFamily:F.body, background:C.bgSoft, outline:"none", color:C.text }}/>
 );
 
 const Err = ({ msg }) => msg ? (
   <div style={{ background:C.redBg, border:`1px solid ${C.red}30`, borderRadius:10,
-    padding:"10px 14px", marginBottom:14, fontSize:13, color:C.red,
-    fontWeight:500, lineHeight:1.5, fontFamily:F.body }}>⚠ {msg}</div>
+    padding:"10px 14px", marginBottom:14, fontSize:13, color:C.red, fontWeight:500, lineHeight:1.5 }}>⚠ {msg}</div>
 ) : null;
 
 const Bdg = ({ children, color, bg }) => (
-  <span style={{ fontSize:11, background:bg, color, borderRadius:20, padding:"3px 11px",
-    fontWeight:600, fontFamily:F.body, whiteSpace:"nowrap" }}>{children}</span>
+  <span style={{ fontSize:11, background:bg, color, borderRadius:20, padding:"3px 11px", fontWeight:600, fontFamily:F.body, whiteSpace:"nowrap" }}>{children}</span>
 );
 
-const Tag = ({ children, color, bg }) => (
-  <span style={{ fontSize:10, background:bg, color, borderRadius:6, padding:"2px 8px",
-    fontWeight:700, fontFamily:F.body, whiteSpace:"nowrap", letterSpacing:.3 }}>{children}</span>
+const InfoBox = ({ color, bg, icon, children, style={} }) => (
+  <div style={{ background:bg, border:`1px solid ${color}30`, borderRadius:12, padding:"11px 14px", display:"flex", gap:10, alignItems:"flex-start", ...style }}>
+    <span style={{ fontSize:16, flexShrink:0 }}>{icon}</span>
+    <p style={{ fontSize:12.5, color, lineHeight:1.6, margin:0, fontFamily:F.body }}>{children}</p>
+  </div>
 );
 
 const Divider = ({ label="" }) => (
@@ -236,42 +229,33 @@ const CarIcon = ({ color="currentColor", size=34 }) => (
 // SPOT CARD
 // ─────────────────────────────────────────
 const SpotCard = ({ spot, isSel, onClick, clickable }) => {
-  const m   = SM[spot.status] || SM.available;
-  const can = clickable && (spot.status==="available"||spot.status==="preferential");
+  const m   = SM[spot.status]||SM.available;
+  const can = clickable&&(spot.status==="available"||spot.status==="preferential");
   return (
     <div className="spot-card-item" onClick={can?()=>onClick(spot):undefined} style={{
       background:isSel?m.bd:m.bg, border:`2px solid ${m.bd}`, borderRadius:14,
       padding:"10px 6px 8px", display:"flex", flexDirection:"column",
       alignItems:"center", gap:3, cursor:can?"pointer":"default",
       transition:"all .18s", boxShadow:isSel?`0 6px 20px ${m.bd}55`:C.sh,
-      transform:isSel?"scale(1.08)":"scale(1)", flex:"1 1 0",
-      minWidth:64, userSelect:"none",
+      transform:isSel?"scale(1.08)":"scale(1)", flex:"1 1 0", minWidth:64, userSelect:"none",
     }}>
-      <span style={{ fontSize:9, fontWeight:700, color:isSel?"#fff":m.tx, letterSpacing:.8, fontFamily:F.body }}>
-        {spot.row}{spot.spotNumber}
-      </span>
+      <span style={{ fontSize:9, fontWeight:700, color:isSel?"#fff":m.tx, letterSpacing:.8, fontFamily:F.body }}>{spot.row}{spot.spotNumber}</span>
       <CarIcon size={26} color={isSel?"#fff":m.car}/>
-      <span style={{ fontSize:8, fontWeight:700, color:isSel?"rgba(255,255,255,.85)":m.tx,
-        letterSpacing:.4, textTransform:"uppercase", fontFamily:F.body }}>{m.lb}</span>
+      <span style={{ fontSize:8, fontWeight:700, color:isSel?"rgba(255,255,255,.85)":m.tx, letterSpacing:.4, textTransform:"uppercase", fontFamily:F.body }}>{m.lb}</span>
     </div>
   );
 };
 
 // ─────────────────────────────────────────
-// PARKING GRID — 12 VAGAS RESPONSIVO
+// PARKING GRID — 12 VAGAS
 // ─────────────────────────────────────────
 const ParkingGrid = ({ spots, selId, onSpotClick, clickable=false }) => {
   const RoadH = ({ label }) => (
-    <div style={{ height:22, background:C.bgDark, borderRadius:6, display:"flex",
-      alignItems:"center", justifyContent:"center", position:"relative", overflow:"hidden", width:"100%" }}>
-      <div style={{ position:"absolute", top:"50%", left:0, right:0, height:2,
-        background:`repeating-linear-gradient(to right,${C.bgSoft} 0,${C.bgSoft} 12px,transparent 12px,transparent 24px)`,
-        transform:"translateY(-50%)"}}/>
-      <span style={{ fontSize:8, fontWeight:700, color:C.textLight, letterSpacing:2,
-        textTransform:"uppercase", position:"relative", fontFamily:F.body }}>{label}</span>
+    <div style={{ height:22, background:C.bgDark, borderRadius:6, display:"flex", alignItems:"center", justifyContent:"center", position:"relative", overflow:"hidden", width:"100%" }}>
+      <div style={{ position:"absolute", top:"50%", left:0, right:0, height:2, background:`repeating-linear-gradient(to right,${C.bgSoft} 0,${C.bgSoft} 12px,transparent 12px,transparent 24px)`, transform:"translateY(-50%)"}}/>
+      <span style={{ fontSize:8, fontWeight:700, color:C.textLight, letterSpacing:2, textTransform:"uppercase", position:"relative", fontFamily:F.body }}>{label}</span>
     </div>
   );
-
   const RowSpots = ({ row }) => (
     <div>
       <div style={{ display:"flex", alignItems:"center", gap:5, marginBottom:5 }}>
@@ -279,45 +263,31 @@ const ParkingGrid = ({ spots, selId, onSpotClick, clickable=false }) => {
         <div style={{ flex:1, height:1, background:C.border }}/>
       </div>
       <div className="spot-row-wrap" style={{ display:"flex", gap:6 }}>
-        {spots.filter(s=>s.row===row).map(s=>(
-          <SpotCard key={s._id} spot={s} isSel={selId===s._id} onClick={onSpotClick} clickable={clickable}/>
-        ))}
+        {spots.filter(s=>s.row===row).map(s=><SpotCard key={s._id} spot={s} isSel={selId===s._id} onClick={onSpotClick} clickable={clickable}/>)}
       </div>
     </div>
   );
-
-  // Via central vertical
   const Via = () => (
-    <div className="park-via" style={{ width:28, background:C.bgDark, borderRadius:6,
-      display:"flex", alignItems:"center", justifyContent:"center",
-      position:"relative", flexShrink:0, minHeight:80 }}>
-      <div style={{ position:"absolute", left:"50%", top:0, bottom:0, width:2,
-        background:`repeating-linear-gradient(to bottom,${C.bgSoft} 0,${C.bgSoft} 10px,transparent 10px,transparent 20px)`,
-        transform:"translateX(-50%)"}}/>
-      <span className="park-via-txt" style={{ fontSize:7, fontWeight:700, color:C.textLight,
-        textTransform:"uppercase", fontFamily:F.body, writingMode:"vertical-rl", position:"relative" }}>Via</span>
+    <div className="park-via" style={{ width:28, background:C.bgDark, borderRadius:6, display:"flex", alignItems:"center", justifyContent:"center", position:"relative", flexShrink:0, minHeight:70 }}>
+      <div style={{ position:"absolute", left:"50%", top:0, bottom:0, width:2, background:`repeating-linear-gradient(to bottom,${C.bgSoft} 0,${C.bgSoft} 10px,transparent 10px,transparent 20px)`, transform:"translateX(-50%)"}}/>
+      <span className="park-via-txt" style={{ fontSize:7, fontWeight:700, color:C.textLight, textTransform:"uppercase", fontFamily:F.body, writingMode:"vertical-rl", position:"relative" }}>Via</span>
     </div>
   );
-
   const Block = ({ l, r, ll, rl }) => (
     <div className="park-section" style={{ display:"flex", gap:0, alignItems:"stretch", width:"100%" }}>
       <div style={{ flex:1, background:C.bgSoft, borderRadius:12, padding:"10px 8px", border:`1px solid ${C.border}`, minWidth:0 }}>
-        <div style={{ fontSize:8, fontWeight:700, color:C.amberDark, letterSpacing:1,
-          textTransform:"uppercase", fontFamily:F.body, marginBottom:7, textAlign:"center" }}>{ll}</div>
+        <div style={{ fontSize:8, fontWeight:700, color:C.amberDark, letterSpacing:1, textTransform:"uppercase", fontFamily:F.body, marginBottom:7, textAlign:"center" }}>{ll}</div>
         <RowSpots row={l}/>
       </div>
       <Via/>
       <div style={{ flex:1, background:C.bgSoft, borderRadius:12, padding:"10px 8px", border:`1px solid ${C.border}`, minWidth:0 }}>
-        <div style={{ fontSize:8, fontWeight:700, color:C.navyMid, letterSpacing:1,
-          textTransform:"uppercase", fontFamily:F.body, marginBottom:7, textAlign:"center" }}>{rl}</div>
+        <div style={{ fontSize:8, fontWeight:700, color:C.navyMid, letterSpacing:1, textTransform:"uppercase", fontFamily:F.body, marginBottom:7, textAlign:"center" }}>{rl}</div>
         <RowSpots row={r}/>
       </div>
     </div>
   );
-
   return (
     <div style={{ display:"flex", flexDirection:"column", gap:6, width:"100%" }}>
-      {/* Legenda */}
       <div style={{ display:"flex", gap:10, marginBottom:6, flexWrap:"wrap" }}>
         {Object.entries(SM).map(([k,m])=>(
           <div key={k} style={{ display:"flex", alignItems:"center", gap:5 }}>
@@ -345,49 +315,29 @@ const LoginScreen = ({ onLogin }) => {
   const [form, setForm] = useState({ nomeCompleto:"", username:"", cpf:"", endereco:"", telefone:"", email:"", password:"" });
   const [err, setErr]   = useState("");
   const [load, setLoad] = useState(false);
-
-  const set = k => e => {
-    let v = e.target.value;
-    if (k==="cpf")      v = fmtCPF(v);
-    if (k==="telefone") v = fmtTel(v);
-    setForm(p=>({...p,[k]:v})); setErr("");
-  };
-
+  const set = k => e => { let v=e.target.value; if(k==="cpf") v=fmtCPF(v); if(k==="telefone") v=fmtTel(v); setForm(p=>({...p,[k]:v})); setErr(""); };
   const submit = async () => {
     setLoad(true); setErr("");
     try {
       let token, user;
-      if (mode==="login") {
-        ({ token, user } = await api.login(form.email.trim(), form.password));
-      } else {
-        if (!form.nomeCompleto||!form.username||!form.cpf||!form.endereco||!form.email||!form.password) {
-          setErr("Preencha todos os campos obrigatórios."); setLoad(false); return;
-        }
+      if (mode==="login") { ({ token, user } = await api.login(form.email.trim(), form.password)); }
+      else {
+        if (!form.nomeCompleto||!form.username||!form.cpf||!form.endereco||!form.email||!form.password) { setErr("Preencha todos os campos."); setLoad(false); return; }
         ({ token, user } = await api.register({ ...form, email:form.email.trim(), username:form.username.trim() }));
       }
-      localStorage.setItem("omv_token", token);
-      onLogin(user);
-    } catch(e) { setErr(e.message); }
-    finally { setLoad(false); }
+      localStorage.setItem("omv_token", token); onLogin(user);
+    } catch(e) { setErr(e.message); } finally { setLoad(false); }
   };
-
   return (
-    <div style={{ minHeight:"100vh", width:"100%", background:C.bg,
-      display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center",
-      fontFamily:F.body, padding:"24px 16px" }}>
+    <div style={{ minHeight:"100vh", width:"100%", background:C.bg, display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", fontFamily:F.body, padding:"24px 16px" }}>
       <style>{GF+CSS}</style>
       <div style={{ textAlign:"center", marginBottom:28 }}>
         <div style={{ fontFamily:F.head, fontSize:26, fontWeight:700, color:C.navy, marginBottom:4 }}>◈ Estacionamento OMV</div>
         <p style={{ fontSize:13, color:C.textLight }}>Sistema Inteligente de Estacionamento</p>
       </div>
-      <div className="slide-up" style={{ background:C.bgCard, borderRadius:24, padding:"34px 30px",
-        boxShadow:C.shLg, border:`1px solid ${C.border}`, width:"100%", maxWidth:440 }}>
-        <h1 style={{ fontFamily:F.head, fontSize:22, fontWeight:700, color:C.navy, marginBottom:4 }}>
-          {mode==="login"?"Bem-vindo de volta":"Criar conta"}
-        </h1>
-        <p style={{ color:C.textLight, fontSize:13, marginBottom:22 }}>
-          {mode==="login"?"Acesse para reservar sua vaga.":"Preencha seus dados para se cadastrar."}
-        </p>
+      <div className="slide-up" style={{ background:C.bgCard, borderRadius:24, padding:"34px 30px", boxShadow:C.shLg, border:`1px solid ${C.border}`, width:"100%", maxWidth:440 }}>
+        <h1 style={{ fontFamily:F.head, fontSize:22, fontWeight:700, color:C.navy, marginBottom:4 }}>{mode==="login"?"Bem-vindo de volta":"Criar conta"}</h1>
+        <p style={{ color:C.textLight, fontSize:13, marginBottom:22 }}>{mode==="login"?"Acesse para reservar sua vaga.":"Preencha seus dados para se cadastrar."}</p>
         {mode==="register"&&<>
           <Fld label="Nome Completo" req><Inp value={form.nomeCompleto} onChange={set("nomeCompleto")} placeholder="João da Silva"/></Fld>
           <div className="form-row" style={{ display:"flex", gap:10 }}>
@@ -402,22 +352,17 @@ const LoginScreen = ({ onLogin }) => {
         <Fld label="Email" req><Inp value={form.email} onChange={set("email")} placeholder="seu@email.com" onKeyDown={e=>e.key==="Enter"&&submit()}/></Fld>
         <Fld label="Senha" req><Inp type="password" value={form.password} onChange={set("password")} placeholder="••••••••" onKeyDown={e=>e.key==="Enter"&&submit()}/></Fld>
         <Err msg={err}/>
-        <Btn onClick={submit} disabled={load} full style={{ padding:"13px", fontSize:15, marginTop:2 }}>
-          {load?<Spin color="#FBF5EE"/>:(mode==="login"?"Entrar":"Criar conta")}
-        </Btn>
+        <Btn onClick={submit} disabled={load} full style={{ padding:"13px", fontSize:15, marginTop:2 }}>{load?<Spin color="#FBF5EE"/>:(mode==="login"?"Entrar":"Criar conta")}</Btn>
         <p style={{ textAlign:"center", marginTop:16, fontSize:13, color:C.textLight }}>
           {mode==="login"?"Ainda não tem conta? ":"Já tem conta? "}
-          <span onClick={()=>{setMode(mode==="login"?"register":"login");setErr("");}}
-            style={{ color:C.navy, fontWeight:600, cursor:"pointer", textDecoration:"underline", textUnderlineOffset:2 }}>
+          <span onClick={()=>{setMode(mode==="login"?"register":"login");setErr("");}} style={{ color:C.navy, fontWeight:600, cursor:"pointer", textDecoration:"underline", textUnderlineOffset:2 }}>
             {mode==="login"?"Cadastre-se":"Entrar"}
           </span>
         </p>
         {mode==="login"&&(
           <div style={{ marginTop:18, background:C.navyLight, borderRadius:12, padding:"12px 14px" }}>
             <p style={{ fontSize:11, color:C.navyMid, fontWeight:700, marginBottom:3, letterSpacing:.8, textTransform:"uppercase" }}>Acesso Admin</p>
-            <p style={{ fontSize:12, color:C.textMid, lineHeight:1.8 }}>
-              <strong style={{ color:C.navy }}>admin@omv.com</strong> / <strong style={{ color:C.navy }}>admin123</strong>
-            </p>
+            <p style={{ fontSize:12, color:C.textMid, lineHeight:1.8 }}><strong style={{ color:C.navy }}>admin@omv.com</strong> / <strong style={{ color:C.navy }}>admin123</strong></p>
           </div>
         )}
       </div>
@@ -426,56 +371,50 @@ const LoginScreen = ({ onLogin }) => {
 };
 
 // ─────────────────────────────────────────
-// TAB: VISÃO GERAL
+// VISÃO GERAL
 // ─────────────────────────────────────────
 const OverviewTab = ({ spots }) => {
   const avail = spots.filter(s=>s.status==="available").length;
   const occ   = spots.filter(s=>s.status==="occupied"||s.status==="reserved").length;
   const pref  = spots.filter(s=>s.status==="preferential").length;
   const pct   = spots.length ? Math.round((occ/spots.length)*100) : 0;
-
   return (
     <div>
-      {/* Estatísticas */}
-      <div style={{ display:"flex", gap:10, marginBottom:18, flexWrap:"wrap" }}>
+      <div style={{ display:"flex", gap:10, marginBottom:16, flexWrap:"wrap" }}>
         {[
           { label:"Livres",        value:avail,        color:C.green,   bg:C.greenBg   },
           { label:"Ocupadas",      value:occ,          color:C.red,     bg:C.redBg     },
           { label:"Preferenciais", value:pref,         color:C.amber,   bg:C.amberBg   },
           { label:"Total",         value:spots.length, color:C.navyMid, bg:C.navyLight },
         ].map(p=>(
-          <div key={p.label} style={{ background:p.bg, borderRadius:14, padding:"13px 16px",
-            border:`1px solid ${p.color}30`, flex:"1 1 0", minWidth:70 }}>
+          <div key={p.label} style={{ background:p.bg, borderRadius:14, padding:"13px 16px", border:`1px solid ${p.color}30`, flex:"1 1 0", minWidth:70 }}>
             <div style={{ fontSize:24, fontFamily:F.head, fontWeight:700, color:p.color, lineHeight:1 }}>{p.value}</div>
             <div style={{ fontSize:10, color:p.color, fontWeight:600, marginTop:3, letterSpacing:.5, textTransform:"uppercase", fontFamily:F.body }}>{p.label}</div>
           </div>
         ))}
       </div>
-
-      {/* Barra de ocupação — MELHORIA 1 */}
-      <div style={{ background:C.bgCard, borderRadius:14, padding:"14px 18px", marginBottom:18, border:`1px solid ${C.border}`, boxShadow:C.sh }}>
-        <div style={{ display:"flex", justifyContent:"space-between", marginBottom:8 }}>
+      {/* Barra de ocupação */}
+      <div style={{ background:C.bgCard, borderRadius:14, padding:"13px 16px", marginBottom:16, border:`1px solid ${C.border}`, boxShadow:C.sh }}>
+        <div style={{ display:"flex", justifyContent:"space-between", marginBottom:7 }}>
           <span style={{ fontSize:12, fontWeight:600, color:C.textMid, fontFamily:F.body }}>Taxa de ocupação</span>
           <span style={{ fontSize:12, fontWeight:700, color:pct>70?C.red:pct>40?C.amber:C.green, fontFamily:F.body }}>{pct}%</span>
         </div>
         <div style={{ height:8, background:C.bgDark, borderRadius:20, overflow:"hidden" }}>
-          <div style={{ height:"100%", width:`${pct}%`, borderRadius:20, transition:"width .6s ease",
-            background:pct>70?C.red:pct>40?C.amber:C.green }}/>
+          <div style={{ height:"100%", width:`${pct}%`, borderRadius:20, transition:"width .6s ease", background:pct>70?C.red:pct>40?C.amber:C.green }}/>
         </div>
-        <p style={{ fontSize:11, color:C.textLight, marginTop:6, fontFamily:F.body }}>
-          {pct>70?"Estacionamento quase cheio":pct>40?"Ocupação moderada":"Boa disponibilidade de vagas"}
+        <p style={{ fontSize:11, color:C.textLight, marginTop:5, fontFamily:F.body }}>
+          {pct>70?"⚠ Estacionamento quase cheio":pct>40?"Ocupação moderada":"✓ Boa disponibilidade de vagas"}
         </p>
       </div>
-
       <ParkingGrid spots={spots} selId={null} onSpotClick={()=>{}} clickable={false}/>
     </div>
   );
 };
 
 // ─────────────────────────────────────────
-// TAB: RESERVAS
+// RESERVAS
 // ─────────────────────────────────────────
-const ReserveTab = ({ spots, activeRes, onReserved, setTab }) => {
+const ReserveTab = ({ spots, activeRes, onReserved, setTab, cfg }) => {
   const [sel, setSel]       = useState(null);
   const [date, setDate]     = useState(todayStr());
   const [time, setTime]     = useState(nowTime());
@@ -484,6 +423,8 @@ const ReserveTab = ({ spots, activeRes, onReserved, setTab }) => {
   const [err, setErr]       = useState("");
   const [load, setLoad]     = useState(false);
   const [step, setStep]     = useState(1);
+  const [cancelLoad, setCancelLoad] = useState(false);
+  const [cancelResult, setCancelResult] = useState(null);
 
   const MODELOS = ["HB20","Onix","Gol","Argo","Mobi","Kwid","Creta","T-Cross","Compass","Tracker","Outros"];
 
@@ -492,31 +433,71 @@ const ReserveTab = ({ spots, activeRes, onReserved, setTab }) => {
     const [y,mo,d] = date.split("-").map(Number);
     const [h,m]    = time.split(":").map(Number);
     let start = new Date(y,mo-1,d,h,m,0,0);
-    if (start < new Date()) start = new Date();
+    if (start<new Date()) start = new Date();
     const tStr = `${String(start.getHours()).padStart(2,"0")}:${String(start.getMinutes()).padStart(2,"0")}`;
     const dStr = start.toISOString().split("T")[0];
     setLoad(true); setErr("");
-    try {
-      await api.createReservation(sel._id, tStr, dStr, placa, modelo);
-      onReserved(); setTab("payment");
-    } catch(e) { setErr(e.message); }
-    finally { setLoad(false); }
+    try { await api.createReservation(sel._id, tStr, dStr, placa, modelo); onReserved(); setTab("payment"); }
+    catch(e) { setErr(e.message); } finally { setLoad(false); }
   };
+
+  const handleCancel = async () => {
+    if (!window.confirm("Deseja cancelar sua reserva?")) return;
+    setCancelLoad(true);
+    try {
+      const r = await api.cancelReservation(activeRes._id);
+      setCancelResult(r);
+      onReserved();
+    } catch(e) { alert(e.message); } finally { setCancelLoad(false); }
+  };
+
+  if (cancelResult) return (
+    <div style={{ maxWidth:440, margin:"0 auto" }}>
+      <Card>
+        <div style={{ textAlign:"center", padding:"10px 0 16px" }}>
+          <div style={{ fontSize:40, marginBottom:10 }}>{cancelResult.feeRefunded?"✅":"💸"}</div>
+          <p style={{ fontFamily:F.head, fontSize:18, fontWeight:700, color:C.navy, marginBottom:6 }}>Reserva cancelada</p>
+          {cancelResult.feeRefunded
+            ? <p style={{ fontSize:13, color:C.green, fontFamily:F.body }}>Taxa de reserva reembolsada — você cancelou com mais de 15 min de antecedência.</p>
+            : <p style={{ fontSize:13, color:C.red, fontFamily:F.body }}>A taxa de reserva de <strong>{fmtMoney(cfg.reservationFee)}</strong> foi retida por cancelamento tardio.</p>
+          }
+        </div>
+        <Btn full onClick={()=>{ setCancelResult(null); setStep(1); }} v="ghost">Fechar</Btn>
+      </Card>
+    </div>
+  );
 
   if (activeRes) return (
     <div style={{ maxWidth:460, margin:"0 auto" }}>
-      <Card style={{ borderLeft:`4px solid ${C.purple}` }}>
-        <div style={{ display:"flex", alignItems:"center", gap:14, marginBottom:14 }}>
-          <div style={{ width:46, height:46, borderRadius:"50%", background:C.purpleBg, display:"flex", alignItems:"center", justifyContent:"center", flexShrink:0 }}>
-            <CarIcon color={C.purple} size={24}/>
-          </div>
-          <div>
-            <p style={{ fontFamily:F.head, fontWeight:600, fontSize:17, color:C.purpleDark, margin:0 }}>Reserva Ativa</p>
-            <p style={{ fontSize:13, color:C.purple, margin:0, fontFamily:F.body }}>Vaga {activeRes.spotNumber} — às {activeRes.startTimeStr}</p>
-          </div>
-        </div>
-        {activeRes.placa&&<p style={{ fontSize:13, color:C.textMid, marginBottom:14, fontFamily:F.body }}>🚗 {activeRes.placa}{activeRes.modelo&&` • ${activeRes.modelo}`}</p>}
-        <Btn v="outline" full onClick={()=>setTab("payment")} style={{ borderColor:C.purple, color:C.purpleDark }}>Ir para Pagamento →</Btn>
+      <Card style={{ borderLeft:`4px solid ${activeRes.status==="no_show"?C.red:C.purple}` }}>
+        {activeRes.status==="no_show" ? (
+          <>
+            <InfoBox color={C.red} bg={C.redBg} icon="⚠" style={{ marginBottom:14 }}>
+              <strong>No-show detectado.</strong> Você não compareceu no horário reservado. Uma multa de <strong>{fmtMoney(cfg.noShowFine)}</strong> foi aplicada. Pague para liberar sua conta.
+            </InfoBox>
+            <Btn v="danger" full onClick={()=>setTab("payment")}>Pagar Multa → {fmtMoney(cfg.noShowFine)}</Btn>
+          </>
+        ) : (
+          <>
+            <div style={{ display:"flex", alignItems:"center", gap:14, marginBottom:14 }}>
+              <div style={{ width:44, height:44, borderRadius:"50%", background:C.purpleBg, display:"flex", alignItems:"center", justifyContent:"center", flexShrink:0 }}>
+                <CarIcon color={C.purple} size={22}/>
+              </div>
+              <div>
+                <p style={{ fontFamily:F.head, fontWeight:600, fontSize:17, color:C.purpleDark, margin:0 }}>Reserva Ativa</p>
+                <p style={{ fontSize:13, color:C.purple, margin:0, fontFamily:F.body }}>Vaga {activeRes.spotNumber} — às {activeRes.startTimeStr}</p>
+                {activeRes.placa&&<p style={{ fontSize:12, color:C.purple, margin:0, fontFamily:F.body }}>🚗 {activeRes.placa}{activeRes.modelo&&` • ${activeRes.modelo}`}</p>}
+              </div>
+            </div>
+            <InfoBox color={C.amberDark} bg={C.amberBg} icon="⏰" style={{ marginBottom:14 }}>
+              Tolerância de <strong>{cfg.toleranceMinutes} minutos</strong> para chegar. Após esse prazo sem detecção do veículo, a vaga é liberada automaticamente e uma multa de <strong>{fmtMoney(cfg.noShowFine)}</strong> é aplicada.
+            </InfoBox>
+            <div style={{ display:"flex", gap:8 }}>
+              <Btn v="outline" full onClick={()=>setTab("payment")} style={{ borderColor:C.purple, color:C.purpleDark }}>Ir para Pagamento</Btn>
+              <Btn v="ghost" onClick={handleCancel} disabled={cancelLoad}>{cancelLoad?<Spin/>:"Cancelar"}</Btn>
+            </div>
+          </>
+        )}
       </Card>
     </div>
   );
@@ -529,24 +510,23 @@ const ReserveTab = ({ spots, activeRes, onReserved, setTab }) => {
             <p style={{ fontSize:13, color:C.textLight, marginBottom:12, lineHeight:1.6, fontFamily:F.body }}>
               Toque em uma vaga <span style={{ color:C.green, fontWeight:600 }}>verde</span> ou <span style={{ color:C.amber, fontWeight:600 }}>amarela</span> para selecionar.
             </p>
-            <ParkingGrid spots={spots} selId={sel?._id}
-              onSpotClick={s=>{setSel(p=>p?._id===s._id?null:s);setErr("");}}
-              clickable={true}/>
+            <ParkingGrid spots={spots} selId={sel?._id} onSpotClick={s=>{setSel(p=>p?._id===s._id?null:s);setErr("");}} clickable={true}/>
           </div>
           {sel&&(
-            <div className="slide-up" style={{ width:240, flexShrink:0 }}>
+            <div className="res-sel-panel slide-up" style={{ width:240, flexShrink:0 }}>
               <Card>
                 <div style={{ display:"flex", alignItems:"center", gap:10, marginBottom:14, paddingBottom:12, borderBottom:`1px solid ${C.border}` }}>
-                  <CarIcon color={C.navy} size={28}/>
+                  <CarIcon color={C.navy} size={26}/>
                   <div>
                     <p style={{ fontSize:10, color:C.textLight, textTransform:"uppercase", letterSpacing:.8, margin:0, fontFamily:F.body }}>Selecionada</p>
-                    <p style={{ fontSize:18, fontFamily:F.head, fontWeight:700, color:C.navy, margin:0 }}>
-                      {sel.row}{sel.spotNumber}
-                      {sel.status==="preferential"&&<span style={{ fontSize:9, color:C.amberDark, marginLeft:7, background:C.amberBg, padding:"2px 6px", borderRadius:4, fontFamily:F.body }}>PREFER.</span>}
-                    </p>
+                    <p style={{ fontSize:18, fontFamily:F.head, fontWeight:700, color:C.navy, margin:0 }}>{sel.row}{sel.spotNumber}</p>
                   </div>
                 </div>
-                <p style={{ fontSize:12, color:C.textLight, marginBottom:12, fontFamily:F.body }}>R$ {PPH},00 / hora</p>
+                <div style={{ marginBottom:14 }}>
+                  <p style={{ fontSize:11, color:C.textLight, fontFamily:F.body, marginBottom:4 }}>Taxa de reserva</p>
+                  <p style={{ fontSize:16, fontFamily:F.head, fontWeight:700, color:C.navy }}>{fmtMoney(cfg.reservationFee)}</p>
+                  <p style={{ fontSize:10, color:C.textLight, fontFamily:F.body }}>+ {fmtMoney(cfg.pricePerHour)}/hora de uso</p>
+                </div>
                 <Btn full onClick={()=>setStep(2)} style={{ marginBottom:8 }}>Continuar →</Btn>
                 <Btn v="ghost" full onClick={()=>setSel(null)}>Cancelar</Btn>
               </Card>
@@ -555,11 +535,9 @@ const ReserveTab = ({ spots, activeRes, onReserved, setTab }) => {
         </div>
       ) : (
         <div style={{ maxWidth:440, margin:"0 auto" }} className="slide-up">
-          <button onClick={()=>setStep(1)} style={{ background:"none", border:"none", cursor:"pointer", color:C.textLight, fontSize:13, fontFamily:F.body, marginBottom:14, display:"flex", alignItems:"center", gap:4 }}>
-            ← Voltar ao mapa
-          </button>
+          <button onClick={()=>setStep(1)} style={{ background:"none", border:"none", cursor:"pointer", color:C.textLight, fontSize:13, fontFamily:F.body, marginBottom:14, display:"flex", alignItems:"center", gap:4 }}>← Voltar ao mapa</button>
           <Card>
-            <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:18, background:C.bg, borderRadius:12, padding:"12px 14px" }}>
+            <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:16, background:C.bg, borderRadius:12, padding:"12px 14px" }}>
               <div style={{ display:"flex", alignItems:"center", gap:10 }}>
                 <CarIcon color={C.navy} size={26}/>
                 <div>
@@ -568,10 +546,15 @@ const ReserveTab = ({ spots, activeRes, onReserved, setTab }) => {
                 </div>
               </div>
               <div style={{ textAlign:"right" }}>
-                <p style={{ fontSize:10, color:C.textLight, margin:0, fontFamily:F.body }}>Valor/hora</p>
-                <p style={{ fontSize:16, fontWeight:700, color:C.green, fontFamily:F.head, margin:0 }}>{fmtMoney(PPH)}</p>
+                <p style={{ fontSize:10, color:C.textLight, margin:0, fontFamily:F.body }}>Taxa + Uso</p>
+                <p style={{ fontSize:14, fontWeight:700, color:C.navy, fontFamily:F.head, margin:0 }}>{fmtMoney(cfg.reservationFee)} + {fmtMoney(cfg.pricePerHour)}/h</p>
               </div>
             </div>
+
+            {/* Aviso sobre taxa e tolerância */}
+            <InfoBox color={C.amberDark} bg={C.amberBg} icon="ℹ" style={{ marginBottom:14 }}>
+              Taxa de reserva de <strong>{fmtMoney(cfg.reservationFee)}</strong> cobrada ao confirmar. Tolerância de <strong>{cfg.toleranceMinutes} min</strong> para chegada. Cancelamento com mais de 15 min de antecedência tem taxa reembolsada.
+            </InfoBox>
 
             <Divider label="Quando vai usar?"/>
             <div className="form-row" style={{ display:"flex", gap:10 }}>
@@ -609,9 +592,7 @@ const ReserveTab = ({ spots, activeRes, onReserved, setTab }) => {
 
             <Err msg={err}/>
             <div style={{ display:"flex", gap:8, marginTop:8 }}>
-              <Btn onClick={handleConfirm} disabled={load} full>
-                {load?<Spin color="#FBF5EE"/>:"Confirmar Reserva"}
-              </Btn>
+              <Btn onClick={handleConfirm} disabled={load} full>{load?<Spin color="#FBF5EE"/>:`Confirmar — pagar ${fmtMoney(cfg.reservationFee)}`}</Btn>
               <Btn v="ghost" onClick={()=>setStep(1)}>Voltar</Btn>
             </div>
           </Card>
@@ -622,130 +603,78 @@ const ReserveTab = ({ spots, activeRes, onReserved, setTab }) => {
 };
 
 // ─────────────────────────────────────────
-// MODAL DE PAGAMENTO SIMULADO — MELHORIA 2
+// MODAL PAGAMENTO SIMULADO
 // ─────────────────────────────────────────
-const PaymentModal = ({ price, onConfirm, onClose }) => {
-  const [method, setMethod] = useState(""); // "pix" | "card" | "demo"
-  const [step, setStep]     = useState(1);  // 1=escolha, 2=simulação, 3=processando
+const PaymentModal = ({ price, label, onConfirm, onClose }) => {
+  const [method, setMethod] = useState("");
+  const [step, setStep]     = useState(1);
   const [card, setCard]     = useState({ num:"", nome:"", val:"", cvv:"" });
-  const pixCode = "00020126580014BR.GOV.BCB.PIX0136omv-estacionamento@pix.com520400005303986540" + price.replace(",",".") + "5802BR5920Estacionamento OMV6009SAO PAULO62070503***6304";
 
   const handlePay = () => {
     setStep(3);
-    setTimeout(()=>{ onConfirm(); }, 2200);
+    setTimeout(onConfirm, 2200);
   };
 
   return (
-    <div style={{ position:"fixed", inset:0, background:"rgba(42,31,20,.6)", zIndex:400,
-      display:"flex", alignItems:"center", justifyContent:"center", padding:20 }} onClick={onClose}>
-      <div className="slide-up" style={{ background:C.bgCard, borderRadius:24, padding:28,
-        maxWidth:420, width:"100%", boxShadow:C.shLg }} onClick={e=>e.stopPropagation()}>
-
+    <div style={{ position:"fixed", inset:0, background:"rgba(42,31,20,.6)", zIndex:400, display:"flex", alignItems:"center", justifyContent:"center", padding:20 }} onClick={onClose}>
+      <div className="slide-up" style={{ background:C.bgCard, borderRadius:24, padding:28, maxWidth:420, width:"100%", boxShadow:C.shLg }} onClick={e=>e.stopPropagation()}>
         {step===3 ? (
           <div style={{ textAlign:"center", padding:"16px 0" }}>
             <Spin size={40} color={C.green}/>
-            <p style={{ fontFamily:F.head, fontSize:18, fontWeight:600, color:C.navy, marginTop:16 }}>Processando pagamento...</p>
+            <p style={{ fontFamily:F.head, fontSize:18, fontWeight:600, color:C.navy, marginTop:16 }}>Processando...</p>
           </div>
         ) : (
           <>
-            <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:18 }}>
-              <h2 style={{ fontFamily:F.head, fontSize:18, fontWeight:700, color:C.navy }}>Confirmar Pagamento</h2>
+            <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:16 }}>
+              <h2 style={{ fontFamily:F.head, fontSize:18, fontWeight:700, color:C.navy }}>{label||"Confirmar Pagamento"}</h2>
               <button onClick={onClose} style={{ background:"none", border:"none", cursor:"pointer", fontSize:18, color:C.textLight }}>✕</button>
             </div>
-
-            <div style={{ background:C.greenBg, borderRadius:12, padding:"12px 16px", marginBottom:18, textAlign:"center" }}>
+            <div style={{ background:C.greenBg, borderRadius:12, padding:"12px 16px", marginBottom:16, textAlign:"center" }}>
               <p style={{ fontSize:11, color:C.greenDark, textTransform:"uppercase", letterSpacing:.8, fontFamily:F.body, margin:0 }}>Total a pagar</p>
               <p style={{ fontSize:28, fontFamily:F.head, fontWeight:700, color:C.green, margin:0 }}>R$ {price}</p>
             </div>
-
-            {step===1 && (
-              <>
-                <p style={{ fontSize:13, color:C.textMid, marginBottom:14, fontFamily:F.body }}>Escolha a forma de pagamento:</p>
-                <div style={{ display:"flex", flexDirection:"column", gap:10 }}>
-                  {/* PIX */}
-                  <button onClick={()=>{setMethod("pix");setStep(2);}} style={{
-                    display:"flex", alignItems:"center", gap:14, padding:"14px 16px",
-                    borderRadius:14, border:`2px solid ${C.border}`, background:C.bgSoft,
-                    cursor:"pointer", textAlign:"left", transition:"all .15s",
-                  }}>
-                    <div style={{ width:40, height:40, borderRadius:10, background:C.tealBg, display:"flex", alignItems:"center", justifyContent:"center", flexShrink:0 }}>
-                      <span style={{ fontSize:20 }}>⚡</span>
-                    </div>
+            {step===1&&(
+              <div style={{ display:"flex", flexDirection:"column", gap:10 }}>
+                {[
+                  { key:"pix",  icon:"⚡", title:"PIX",           sub:"Aprovação instantânea",  border:C.border, bg:C.bgSoft },
+                  { key:"card", icon:"💳", title:"Cartão",         sub:"Crédito ou débito",      border:C.border, bg:C.bgSoft },
+                  { key:"demo", icon:"🎓", title:"Modo Demo (TCC)", sub:"Sem pagamento real",     border:C.amber,  bg:C.amberBg },
+                ].map(opt=>(
+                  <button key={opt.key} onClick={()=>{ if(opt.key==="demo"){handlePay();}else{setMethod(opt.key);setStep(2);} }} style={{ display:"flex", alignItems:"center", gap:14, padding:"13px 16px", borderRadius:14, border:`2px solid ${opt.border}`, background:opt.bg, cursor:"pointer", textAlign:"left" }}>
+                    <div style={{ width:38, height:38, borderRadius:10, background:"rgba(0,0,0,.06)", display:"flex", alignItems:"center", justifyContent:"center", flexShrink:0, fontSize:18 }}>{opt.icon}</div>
                     <div>
-                      <p style={{ fontSize:14, fontWeight:700, color:C.navy, margin:0, fontFamily:F.body }}>PIX</p>
-                      <p style={{ fontSize:11, color:C.textLight, margin:0, fontFamily:F.body }}>Aprovação instantânea</p>
+                      <p style={{ fontSize:14, fontWeight:700, color:C.navy, margin:0, fontFamily:F.body }}>{opt.title}</p>
+                      <p style={{ fontSize:11, color:C.textLight, margin:0, fontFamily:F.body }}>{opt.sub}</p>
                     </div>
                   </button>
-
-                  {/* Cartão */}
-                  <button onClick={()=>{setMethod("card");setStep(2);}} style={{
-                    display:"flex", alignItems:"center", gap:14, padding:"14px 16px",
-                    borderRadius:14, border:`2px solid ${C.border}`, background:C.bgSoft,
-                    cursor:"pointer", textAlign:"left", transition:"all .15s",
-                  }}>
-                    <div style={{ width:40, height:40, borderRadius:10, background:C.purpleBg, display:"flex", alignItems:"center", justifyContent:"center", flexShrink:0 }}>
-                      <span style={{ fontSize:20 }}>💳</span>
-                    </div>
-                    <div>
-                      <p style={{ fontSize:14, fontWeight:700, color:C.navy, margin:0, fontFamily:F.body }}>Cartão</p>
-                      <p style={{ fontSize:11, color:C.textLight, margin:0, fontFamily:F.body }}>Crédito ou débito</p>
-                    </div>
-                  </button>
-
-                  {/* DEMO — para apresentação do TCC */}
-                  <button onClick={()=>{setMethod("demo");handlePay();}} style={{
-                    display:"flex", alignItems:"center", gap:14, padding:"14px 16px",
-                    borderRadius:14, border:`2px dashed ${C.amber}`, background:C.amberBg,
-                    cursor:"pointer", textAlign:"left", transition:"all .15s",
-                  }}>
-                    <div style={{ width:40, height:40, borderRadius:10, background:"rgba(160,112,10,.15)", display:"flex", alignItems:"center", justifyContent:"center", flexShrink:0 }}>
-                      <span style={{ fontSize:20 }}>🎓</span>
-                    </div>
-                    <div>
-                      <p style={{ fontSize:14, fontWeight:700, color:C.amberDark, margin:0, fontFamily:F.body }}>Modo Demonstração</p>
-                      <p style={{ fontSize:11, color:C.amber, margin:0, fontFamily:F.body }}>Confirma sem pagamento real (TCC)</p>
-                    </div>
-                  </button>
-                </div>
-              </>
+                ))}
+              </div>
             )}
-
-            {step===2 && method==="pix" && (
+            {step===2&&method==="pix"&&(
               <div>
-                <div style={{ background:C.bgSoft, borderRadius:14, padding:16, marginBottom:16, textAlign:"center" }}>
-                  {/* QR Code simulado */}
-                  <div style={{ width:140, height:140, margin:"0 auto 12px", background:C.navy, borderRadius:10, display:"flex", alignItems:"center", justifyContent:"center" }}>
+                <div style={{ background:C.bgSoft, borderRadius:14, padding:16, marginBottom:14, textAlign:"center" }}>
+                  <div style={{ width:130, height:130, margin:"0 auto 10px", background:C.navy, borderRadius:10, display:"flex", alignItems:"center", justifyContent:"center" }}>
                     <div style={{ display:"grid", gridTemplateColumns:"repeat(7,1fr)", gap:2, padding:8 }}>
                       {Array.from({length:49}).map((_,i)=>(
-                        <div key={i} style={{ width:12, height:12, background:Math.random()>.45?"#FBF5EE":"transparent", borderRadius:1 }}/>
+                        <div key={i} style={{ width:11, height:11, background:Math.random()>.45?"#FBF5EE":"transparent", borderRadius:1 }}/>
                       ))}
                     </div>
                   </div>
-                  <p style={{ fontSize:11, color:C.textLight, fontFamily:F.body, marginBottom:8 }}>QR Code simulado para demonstração</p>
-                  <div style={{ background:C.bgCard, borderRadius:8, padding:"8px 12px", fontSize:9, color:C.textLight, fontFamily:"monospace", wordBreak:"break-all", textAlign:"left" }}>
-                    {pixCode.slice(0,60)}...
-                  </div>
+                  <p style={{ fontSize:11, color:C.textLight, fontFamily:F.body }}>QR Code simulado para demonstração</p>
                 </div>
                 <Btn v="teal" full onClick={handlePay}>✓ Simular Pagamento PIX</Btn>
                 <button onClick={()=>setStep(1)} style={{ marginTop:10, background:"none", border:"none", cursor:"pointer", color:C.textLight, fontSize:13, fontFamily:F.body, width:"100%" }}>← Voltar</button>
               </div>
             )}
-
-            {step===2 && method==="card" && (
+            {step===2&&method==="card"&&(
               <div>
-                <Fld label="Número do Cartão">
-                  <Inp value={card.num} onChange={e=>setCard(p=>({...p,num:e.target.value.replace(/\D/g,"").slice(0,16).replace(/(\d{4})/g,"$1 ").trim()}))} placeholder="0000 0000 0000 0000" maxLength={19}/>
-                </Fld>
-                <Fld label="Nome no Cartão">
-                  <Inp value={card.nome} onChange={e=>setCard(p=>({...p,nome:e.target.value.toUpperCase()}))} placeholder="JOÃO DA SILVA"/>
-                </Fld>
+                <Fld label="Número"><Inp value={card.num} onChange={e=>setCard(p=>({...p,num:e.target.value.replace(/\D/g,"").slice(0,16).replace(/(\d{4})/g,"$1 ").trim()}))} placeholder="0000 0000 0000 0000" maxLength={19}/></Fld>
+                <Fld label="Nome no cartão"><Inp value={card.nome} onChange={e=>setCard(p=>({...p,nome:e.target.value.toUpperCase()}))} placeholder="JOÃO DA SILVA"/></Fld>
                 <div style={{ display:"flex", gap:10 }}>
                   <div style={{ flex:1 }}><Fld label="Validade"><Inp value={card.val} onChange={e=>setCard(p=>({...p,val:e.target.value.replace(/\D/g,"").slice(0,4).replace(/(\d{2})(\d)/,"$1/$2")}))} placeholder="MM/AA" maxLength={5}/></Fld></div>
                   <div style={{ flex:1 }}><Fld label="CVV"><Inp value={card.cvv} onChange={e=>setCard(p=>({...p,cvv:e.target.value.replace(/\D/g,"").slice(0,3)}))} placeholder="000" maxLength={3}/></Fld></div>
                 </div>
-                <div style={{ background:C.amberBg, borderRadius:10, padding:"8px 12px", marginBottom:14, border:`1px solid ${C.amber}30` }}>
-                  <p style={{ fontSize:11, color:C.amberDark, fontFamily:F.body, margin:0 }}>🎓 Modo demonstração — nenhuma cobrança real será feita.</p>
-                </div>
+                <InfoBox color={C.amberDark} bg={C.amberBg} icon="🎓" style={{ marginBottom:14 }}>Modo demonstração — nenhuma cobrança real será feita.</InfoBox>
                 <Btn v="purple" full onClick={handlePay}>Confirmar Pagamento</Btn>
                 <button onClick={()=>setStep(1)} style={{ marginTop:10, background:"none", border:"none", cursor:"pointer", color:C.textLight, fontSize:13, fontFamily:F.body, width:"100%" }}>← Voltar</button>
               </div>
@@ -758,12 +687,12 @@ const PaymentModal = ({ price, onConfirm, onClose }) => {
 };
 
 // ─────────────────────────────────────────
-// TAB: PAGAMENTO
+// PAGAMENTO
 // ─────────────────────────────────────────
-const PaymentTab = ({ activeRes, onPaid }) => {
+const PaymentTab = ({ activeRes, onPaid, cfg }) => {
   const [secs, setSecs]         = useState(0);
   const [running, setRunning]   = useState(false);
-  const [showPayModal, setShowPayModal] = useState(false);
+  const [showModal, setShowModal] = useState(false);
   const [paid, setPaid]         = useState(false);
   const [fp, setFp]             = useState(null);
   const [ft, setFt]             = useState(null);
@@ -772,6 +701,7 @@ const PaymentTab = ({ activeRes, onPaid }) => {
 
   useEffect(()=>{
     if (!activeRes) return;
+    if (activeRes.status==="no_show") { setSecs(0); return; }
     const elapsed = Math.max(0, Math.floor((new Date()-new Date(activeRes.startTime))/1000));
     setSecs(elapsed);
     if (new Date()>=new Date(activeRes.startTime)) setRunning(true);
@@ -783,90 +713,107 @@ const PaymentTab = ({ activeRes, onPaid }) => {
     return ()=>clearInterval(iv.current);
   },[running]);
 
-  const price = ((secs/3600)*PPH).toFixed(2);
+  const usagePrice = ((secs/3600)*cfg.pricePerHour).toFixed(2);
+  const totalPrice = (parseFloat(usagePrice)+cfg.reservationFee).toFixed(2);
+  const noShowTotal = cfg.noShowFine.toFixed(2);
 
   const handlePayConfirm = async () => {
     setLoad(true);
     try {
-      const { totalPrice } = await api.payReservation(activeRes._id);
-      clearInterval(iv.current);
-      setRunning(false); setPaid(true); setShowPayModal(false);
-      setFp(totalPrice.toFixed(2)); setFt(fmtTime(secs));
+      const { totalPrice: tp } = await api.payReservation(activeRes._id);
+      clearInterval(iv.current); setRunning(false); setPaid(true); setShowModal(false);
+      setFp(tp.toFixed(2)); setFt(fmtTime(secs));
       setTimeout(()=>{ setPaid(false);setFp(null);setFt(null);setSecs(0);onPaid(); },5000);
-    } catch(e){ alert(e.message); }
-    finally { setLoad(false); }
+    } catch(e){ alert(e.message); } finally { setLoad(false); }
   };
 
   if (paid) return (
-    <div style={{ display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", minHeight:320, textAlign:"center", gap:16 }}>
-      <div style={{ width:72, height:72, borderRadius:"50%", background:C.greenBg, display:"flex", alignItems:"center", justifyContent:"center" }}>
-        <svg width={30} height={30} viewBox="0 0 24 24" fill="none" stroke={C.green} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+    <div style={{ display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", minHeight:300, textAlign:"center", gap:14 }}>
+      <div style={{ width:68, height:68, borderRadius:"50%", background:C.greenBg, display:"flex", alignItems:"center", justifyContent:"center" }}>
+        <svg width={28} height={28} viewBox="0 0 24 24" fill="none" stroke={C.green} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
       </div>
       <p style={{ fontFamily:F.head, fontSize:24, fontWeight:700, color:C.green, margin:0 }}>Pagamento Confirmado!</p>
-      <p style={{ fontSize:22, fontWeight:700, color:C.greenDark, fontFamily:F.head }}>{fmtMoney(fp)}</p>
+      <p style={{ fontSize:20, fontWeight:700, color:C.greenDark, fontFamily:F.head }}>{fmtMoney(fp)}</p>
       <p style={{ color:C.textLight, fontSize:13, fontFamily:F.body }}>Duração: {ft} — Obrigado!</p>
     </div>
   );
 
   return (
-    <div className="pay-layout" style={{ display:"flex", gap:28, flexWrap:"wrap", alignItems:"flex-start" }}>
-      {showPayModal && (
+    <div className="pay-layout" style={{ display:"flex", gap:24, flexWrap:"wrap", alignItems:"flex-start" }}>
+      {showModal&&(
         <PaymentModal
-          price={price.replace(".",",")}
+          price={activeRes?.status==="no_show" ? noShowTotal : totalPrice}
+          label={activeRes?.status==="no_show" ? "Pagar Multa No-Show" : "Confirmar Pagamento"}
           onConfirm={handlePayConfirm}
-          onClose={()=>setShowPayModal(false)}
+          onClose={()=>setShowModal(false)}
         />
       )}
-
-      <div className="pay-wrap" style={{ flex:"0 0 380px", display:"flex", flexDirection:"column", gap:14 }}>
+      <div className="pay-wrap" style={{ flex:"0 0 360px", display:"flex", flexDirection:"column", gap:14 }}>
         {!activeRes ? (
-          <div style={{ display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", minHeight:260, textAlign:"center", gap:12, padding:20 }}>
-            <div style={{ width:60, height:60, borderRadius:"50%", background:C.bgDark, display:"flex", alignItems:"center", justifyContent:"center" }}>
-              <CarIcon color={C.borderMid} size={30}/>
+          <div style={{ display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", minHeight:240, textAlign:"center", gap:12, padding:20 }}>
+            <div style={{ width:58, height:58, borderRadius:"50%", background:C.bgDark, display:"flex", alignItems:"center", justifyContent:"center" }}>
+              <CarIcon color={C.borderMid} size={28}/>
             </div>
-            <p style={{ fontFamily:F.head, fontSize:18, fontWeight:600, color:C.textLight }}>Nenhuma reserva ativa</p>
-            <p style={{ fontSize:13, color:C.textLight, maxWidth:260, lineHeight:1.7, fontFamily:F.body }}>
-              Reserve uma vaga na aba <strong style={{ color:C.textMid }}>Reservas</strong> para acompanhar aqui.
-            </p>
+            <p style={{ fontFamily:F.head, fontSize:17, fontWeight:600, color:C.textLight }}>Nenhuma reserva ativa</p>
+            <p style={{ fontSize:13, color:C.textLight, maxWidth:250, lineHeight:1.7, fontFamily:F.body }}>Reserve uma vaga na aba <strong style={{ color:C.textMid }}>Reservas</strong>.</p>
           </div>
+        ) : activeRes.status==="no_show" ? (
+          <>
+            <InfoBox color={C.red} bg={C.redBg} icon="⚠">
+              <strong>No-show detectado.</strong> Você não compareceu no horário reservado ({activeRes.startTimeStr}). Multa de <strong>{fmtMoney(cfg.noShowFine)}</strong> aplicada.
+            </InfoBox>
+            <div style={{ background:C.bgCard, borderRadius:14, padding:"14px 18px", border:`1px solid ${C.border}` }}>
+              <div style={{ display:"flex", justifyContent:"space-between", marginBottom:6 }}>
+                <span style={{ fontSize:13, color:C.textMid, fontFamily:F.body }}>Multa no-show</span>
+                <span style={{ fontSize:13, fontWeight:600, color:C.red, fontFamily:F.body }}>{fmtMoney(cfg.noShowFine)}</span>
+              </div>
+              <div style={{ display:"flex", justifyContent:"space-between", paddingTop:8, borderTop:`1px solid ${C.border}` }}>
+                <span style={{ fontSize:14, fontWeight:700, color:C.navy, fontFamily:F.body }}>Total</span>
+                <span style={{ fontSize:18, fontWeight:700, color:C.red, fontFamily:F.head }}>{fmtMoney(cfg.noShowFine)}</span>
+              </div>
+            </div>
+            <Btn v="danger" full onClick={()=>setShowModal(true)} style={{ padding:"13px" }}>Pagar Multa — {fmtMoney(cfg.noShowFine)}</Btn>
+          </>
         ) : (
           <>
-            {/* Info da vaga */}
-            <div style={{ display:"flex", alignItems:"center", gap:14, background:C.purpleBg, borderRadius:16, padding:"14px 18px", border:`1.5px solid ${C.purple}` }}>
-              <CarIcon color={C.purple} size={34}/>
+            <div style={{ display:"flex", alignItems:"center", gap:14, background:C.purpleBg, borderRadius:16, padding:"13px 18px", border:`1.5px solid ${C.purple}` }}>
+              <CarIcon color={C.purple} size={32}/>
               <div>
                 <p style={{ fontSize:10, fontWeight:600, color:C.purple, letterSpacing:1.2, textTransform:"uppercase", margin:0, fontFamily:F.body }}>Sua Vaga</p>
-                <p style={{ fontFamily:F.head, fontSize:22, fontWeight:700, color:C.purpleDark, margin:0, lineHeight:1.1 }}>
-                  {activeRes.spot?.row}{activeRes.spotNumber}
-                </p>
-                <p style={{ fontSize:12, color:C.purple, margin:0, fontFamily:F.body }}>
-                  {activeRes.startTimeStr}{activeRes.placa&&` • ${activeRes.placa}`}{activeRes.modelo&&` • ${activeRes.modelo}`}
-                </p>
+                <p style={{ fontFamily:F.head, fontSize:20, fontWeight:700, color:C.purpleDark, margin:0, lineHeight:1.1 }}>{activeRes.spot?.row}{activeRes.spotNumber}</p>
+                <p style={{ fontSize:12, color:C.purple, margin:0, fontFamily:F.body }}>{activeRes.startTimeStr}{activeRes.placa&&` • ${activeRes.placa}`}</p>
               </div>
             </div>
 
-            {/* Cronômetro */}
-            <div style={{ background:C.navy, borderRadius:18, padding:"20px 24px", textAlign:"center" }}>
+            <div style={{ background:C.navy, borderRadius:18, padding:"18px 22px", textAlign:"center" }}>
               <p style={{ color:"#A89880", fontSize:10, fontWeight:600, letterSpacing:2, textTransform:"uppercase", marginBottom:8, fontFamily:F.body }}>
                 {running?"Tempo Decorrido":"Aguardando Horário"}
               </p>
               <p className="timer-num" style={{ fontFamily:F.head, fontSize:44, fontWeight:700, color:"#FBF5EE", letterSpacing:2, lineHeight:1, margin:0 }}>
                 {fmtTime(secs)}
               </p>
-              {running && (
-                <p style={{ color:"#C4AA8A", fontSize:16, fontWeight:600, marginTop:10, fontFamily:F.head }}>
-                  {fmtMoney(price)}
-                </p>
-              )}
               {!running&&<p style={{ color:"#A89880", fontSize:11, marginTop:8, fontFamily:F.body }}>O cronômetro inicia no horário reservado.</p>}
             </div>
 
-            {/* Botão pagar */}
-            {running && (
-              <Btn v="amber" onClick={()=>setShowPayModal(true)} full style={{ padding:"13px" }}>
-                Pagar Reserva — {fmtMoney(price)}
-              </Btn>
+            {/* Resumo de valores */}
+            {running&&(
+              <div style={{ background:C.bgCard, borderRadius:14, padding:"13px 16px", border:`1px solid ${C.border}` }}>
+                <div className="fee-row" style={{ display:"flex", justifyContent:"space-between", marginBottom:6 }}>
+                  <span style={{ fontSize:12, color:C.textMid, fontFamily:F.body }}>Taxa de reserva</span>
+                  <span style={{ fontSize:12, fontWeight:600, color:C.navy, fontFamily:F.body }}>{fmtMoney(cfg.reservationFee)}</span>
+                </div>
+                <div className="fee-row" style={{ display:"flex", justifyContent:"space-between", marginBottom:6 }}>
+                  <span style={{ fontSize:12, color:C.textMid, fontFamily:F.body }}>Uso ({fmtTime(secs)})</span>
+                  <span style={{ fontSize:12, fontWeight:600, color:C.navy, fontFamily:F.body }}>{fmtMoney(usagePrice)}</span>
+                </div>
+                <div className="fee-row" style={{ display:"flex", justifyContent:"space-between", paddingTop:8, borderTop:`1px solid ${C.border}` }}>
+                  <span style={{ fontSize:13, fontWeight:700, color:C.navy, fontFamily:F.body }}>Total</span>
+                  <span style={{ fontSize:18, fontWeight:700, color:C.green, fontFamily:F.head }}>{fmtMoney(totalPrice)}</span>
+                </div>
+              </div>
             )}
+
+            {running&&<Btn v="amber" onClick={()=>setShowModal(true)} full style={{ padding:"13px" }}>Pagar Reserva — {fmtMoney(totalPrice)}</Btn>}
           </>
         )}
       </div>
@@ -875,79 +822,71 @@ const PaymentTab = ({ activeRes, onPaid }) => {
 };
 
 // ─────────────────────────────────────────
-// TAB: MINHA CONTA — MELHORIA 3
+// MINHA CONTA
 // ─────────────────────────────────────────
 const ProfileTab = ({ user, onLogout }) => {
-  const [history, setHistory] = useState([]);
-  const [load, setLoad]       = useState(true);
+  const [history, setHistory]   = useState([]);
   const [activeRes, setActiveRes] = useState(null);
-  const cpfFmt = user.cpf ? user.cpf.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/,"$1.$2.$3-$4") : "—";
+  const [load, setLoad]         = useState(true);
+  const cpfFmt = user.cpf?user.cpf.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/,"$1.$2.$3-$4"):"—";
 
   useEffect(()=>{
     Promise.all([api.myHistory(), api.myReservation()])
       .then(([h,r])=>{ setHistory(h); setActiveRes(r); })
-      .catch(()=>{})
-      .finally(()=>setLoad(false));
+      .catch(()=>{}).finally(()=>setLoad(false));
   },[]);
 
   const totalGasto = history.reduce((a,r)=>a+(r.totalPrice||0),0);
   const totalSecs  = history.reduce((a,r)=>a+(r.totalSeconds||0),0);
 
+  const statusBdg = (s) => {
+    if (s==="paid")      return <Bdg color={C.greenDark} bg={C.greenBg}>Pago</Bdg>;
+    if (s==="cancelled") return <Bdg color={C.red}       bg={C.redBg}>Cancelado</Bdg>;
+    if (s==="no_show")   return <Bdg color={C.red}       bg={C.redBg}>No-show</Bdg>;
+    return null;
+  };
+
   return (
-    <div style={{ maxWidth:680, margin:"0 auto" }}>
-      {/* Avatar + info */}
-      <div style={{ display:"flex", alignItems:"center", gap:18, marginBottom:20, background:C.bgCard, borderRadius:20, padding:"18px 22px", boxShadow:C.sh, border:`1px solid ${C.border}` }}>
-        <div style={{ width:58, height:58, borderRadius:"50%", background:C.navy, display:"flex", alignItems:"center", justifyContent:"center", fontSize:22, fontWeight:700, color:"#FBF5EE", fontFamily:F.head, flexShrink:0 }}>
+    <div style={{ maxWidth:660, margin:"0 auto" }}>
+      <div style={{ display:"flex", alignItems:"center", gap:16, marginBottom:18, background:C.bgCard, borderRadius:20, padding:"16px 20px", boxShadow:C.sh, border:`1px solid ${C.border}` }}>
+        <div style={{ width:54, height:54, borderRadius:"50%", background:C.navy, display:"flex", alignItems:"center", justifyContent:"center", fontSize:20, fontWeight:700, color:"#FBF5EE", fontFamily:F.head, flexShrink:0 }}>
           {(user.nomeCompleto?.[0]||user.email[0]).toUpperCase()}
         </div>
         <div style={{ flex:1, minWidth:0 }}>
-          <p style={{ fontFamily:F.head, fontSize:18, fontWeight:700, color:C.navy, margin:0 }}>{user.nomeCompleto||"—"}</p>
+          <p style={{ fontFamily:F.head, fontSize:17, fontWeight:700, color:C.navy, margin:0 }}>{user.nomeCompleto||"—"}</p>
           <p style={{ fontSize:12, color:C.textLight, margin:0, fontFamily:F.body }}>@{user.username||"—"} • {user.email}</p>
         </div>
-        <Btn v="ghost" sm onClick={onLogout} style={{ flexShrink:0 }}>Sair</Btn>
+        <Btn v="ghost" sm onClick={onLogout}>Sair</Btn>
       </div>
 
-      {/* Reserva ativa — MELHORIA 4 */}
-      {activeRes && (
-        <div style={{ background:C.purpleBg, borderRadius:16, padding:"14px 18px", marginBottom:16, border:`1.5px solid ${C.purple}` }}>
-          <div style={{ display:"flex", alignItems:"center", gap:10 }}>
-            <div style={{ animation:"pulse 2s infinite" }}>
-              <div style={{ width:10, height:10, borderRadius:"50%", background:C.purple }}/>
-            </div>
-            <p style={{ fontFamily:F.body, fontSize:13, fontWeight:600, color:C.purpleDark, margin:0 }}>
-              Reserva ativa — Vaga {activeRes.spotNumber} às {activeRes.startTimeStr}
-              {activeRes.placa&&` • ${activeRes.placa}`}
+      {activeRes&&(
+        <div style={{ background:activeRes.status==="no_show"?C.redBg:C.purpleBg, borderRadius:14, padding:"12px 16px", marginBottom:14, border:`1.5px solid ${activeRes.status==="no_show"?C.red:C.purple}` }}>
+          <div style={{ display:"flex", alignItems:"center", gap:8 }}>
+            <div style={{ width:8, height:8, borderRadius:"50%", background:activeRes.status==="no_show"?C.red:C.purple, animation:"pulse 2s infinite", flexShrink:0 }}/>
+            <p style={{ fontSize:13, fontWeight:600, color:activeRes.status==="no_show"?C.redDark:C.purpleDark, margin:0, fontFamily:F.body }}>
+              {activeRes.status==="no_show" ? "⚠ Multa pendente por no-show" : `Reserva ativa — Vaga ${activeRes.spotNumber} às ${activeRes.startTimeStr}`}
             </p>
           </div>
         </div>
       )}
 
-      {/* Estatísticas */}
-      <div className="profile-stats" style={{ display:"grid", gridTemplateColumns:"repeat(3,1fr)", gap:10, marginBottom:16 }}>
+      <div className="profile-stats" style={{ display:"grid", gridTemplateColumns:"repeat(3,1fr)", gap:10, marginBottom:14 }}>
         {[
           { label:"Reservas",    value:history.length,       color:C.purple, bg:C.purpleBg },
           { label:"Total gasto", value:fmtMoney(totalGasto), color:C.green,  bg:C.greenBg  },
           { label:"Tempo total", value:fmtTime(totalSecs),   color:C.amber,  bg:C.amberBg  },
         ].map(p=>(
           <div key={p.label} style={{ background:p.bg, borderRadius:14, padding:"12px 14px", border:`1px solid ${p.color}30` }}>
-            <div style={{ fontSize:16, fontFamily:F.head, fontWeight:700, color:p.color, lineHeight:1.2, wordBreak:"break-all" }}>{p.value}</div>
+            <div style={{ fontSize:15, fontFamily:F.head, fontWeight:700, color:p.color, lineHeight:1.2, wordBreak:"break-all" }}>{p.value}</div>
             <div style={{ fontSize:10, color:p.color, fontWeight:600, marginTop:4, letterSpacing:.5, textTransform:"uppercase", fontFamily:F.body }}>{p.label}</div>
           </div>
         ))}
       </div>
 
-      {/* Dados pessoais */}
       <Card style={{ marginBottom:14 }}>
         <h3 style={{ fontFamily:F.head, fontSize:15, fontWeight:700, color:C.navy, marginBottom:14 }}>Dados Pessoais</h3>
-        <div className="profile-grid2" style={{ display:"grid", gridTemplateColumns:"repeat(2,1fr)", gap:14 }}>
-          {[
-            ["Nome",      user.nomeCompleto||"—"],
-            ["Usuário",   `@${user.username||"—"}`],
-            ["Email",     user.email],
-            ["CPF",       cpfFmt],
-            ["Telefone",  user.telefone||"—"],
-            ["Endereço",  user.endereco||"—"],
-          ].map(([k,v])=>(
+        <div className="profile-grid2" style={{ display:"grid", gridTemplateColumns:"repeat(2,1fr)", gap:12 }}>
+          {[["Nome",user.nomeCompleto||"—"],["Usuário",`@${user.username||"—"}`],["Email",user.email],["CPF",cpfFmt],["Telefone",user.telefone||"—"],["Endereço",user.endereco||"—"]].map(([k,v])=>(
             <div key={k}>
               <p style={{ fontSize:10, color:C.textLight, textTransform:"uppercase", letterSpacing:.8, margin:"0 0 3px", fontFamily:F.body }}>{k}</p>
               <p style={{ fontSize:13, color:C.navy, fontWeight:500, margin:0, fontFamily:F.body, wordBreak:"break-all" }}>{v}</p>
@@ -956,24 +895,25 @@ const ProfileTab = ({ user, onLogout }) => {
         </div>
       </Card>
 
-      {/* Histórico */}
       <Card>
-        <h3 style={{ fontFamily:F.head, fontSize:15, fontWeight:700, color:C.navy, marginBottom:14 }}>Histórico de Pagamentos</h3>
-        {load&&<div style={{ display:"flex", justifyContent:"center", padding:"20px 0" }}><Spin/></div>}
+        <h3 style={{ fontFamily:F.head, fontSize:15, fontWeight:700, color:C.navy, marginBottom:14 }}>Histórico</h3>
+        {load&&<div style={{ display:"flex", justifyContent:"center", padding:"16px 0" }}><Spin/></div>}
         {!load&&history.length===0&&<p style={{ fontSize:13, color:C.textLight, fontFamily:F.body }}>Nenhum pagamento ainda.</p>}
         {!load&&history.map((r,i)=>(
-          <div key={r._id} style={{ display:"flex", alignItems:"center", justifyContent:"space-between",
-            padding:"11px 0", borderBottom:i<history.length-1?`1px solid ${C.border}`:"none", gap:10, flexWrap:"wrap" }}>
-            <div style={{ display:"flex", alignItems:"center", gap:12 }}>
-              <div style={{ width:34, height:34, borderRadius:10, background:C.navyLight, display:"flex", alignItems:"center", justifyContent:"center", flexShrink:0 }}>
-                <CarIcon color={C.navyMid} size={16}/>
+          <div key={r._id} style={{ display:"flex", alignItems:"center", justifyContent:"space-between", padding:"10px 0", borderBottom:i<history.length-1?`1px solid ${C.border}`:"none", gap:10, flexWrap:"wrap" }}>
+            <div style={{ display:"flex", alignItems:"center", gap:10 }}>
+              <div style={{ width:32, height:32, borderRadius:9, background:C.navyLight, display:"flex", alignItems:"center", justifyContent:"center", flexShrink:0 }}>
+                <CarIcon color={C.navyMid} size={15}/>
               </div>
               <div>
                 <p style={{ fontFamily:F.body, fontSize:13, fontWeight:600, color:C.navy, margin:0 }}>Vaga {r.spotNumber}{r.placa&&` • ${r.placa}`}</p>
-                <p style={{ fontSize:11, color:C.textLight, margin:0, fontFamily:F.body }}>{fmtDate(r.createdAt)} • {fmtTime(r.totalSeconds||0)}</p>
+                <p style={{ fontSize:11, color:C.textLight, margin:0, fontFamily:F.body }}>{fmtDate(r.createdAt)}{r.totalSeconds?` • ${fmtTime(r.totalSeconds)}`:""}</p>
               </div>
             </div>
-            <Bdg color={C.greenDark} bg={C.greenBg}>{fmtMoney(r.totalPrice)}</Bdg>
+            <div style={{ display:"flex", alignItems:"center", gap:7 }}>
+              {statusBdg(r.status)}
+              <Bdg color={C.greenDark} bg={C.greenBg}>{fmtMoney(r.totalPrice)}</Bdg>
+            </div>
           </div>
         ))}
       </Card>
@@ -982,20 +922,16 @@ const ProfileTab = ({ user, onLogout }) => {
 };
 
 // ─────────────────────────────────────────
-// MODAL USUÁRIO (ADMIN)
+// MODAL USUÁRIO ADMIN
 // ─────────────────────────────────────────
 const UserModal = ({ user, onClose, onToggle }) => {
   if (!user) return null;
   const cpf = user.cpf?user.cpf.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/,"$1.$2.$3-$4"):"—";
   return (
-    <div style={{ position:"fixed", inset:0, background:"rgba(42,31,20,.55)", zIndex:300,
-      display:"flex", alignItems:"center", justifyContent:"center", padding:20 }} onClick={onClose}>
-      <div className="fade-in" style={{ background:C.bgCard, borderRadius:22, padding:26,
-        maxWidth:400, width:"100%", boxShadow:C.shLg }} onClick={e=>e.stopPropagation()}>
+    <div style={{ position:"fixed", inset:0, background:"rgba(42,31,20,.55)", zIndex:300, display:"flex", alignItems:"center", justifyContent:"center", padding:20 }} onClick={onClose}>
+      <div className="fade-in" style={{ background:C.bgCard, borderRadius:22, padding:26, maxWidth:400, width:"100%", boxShadow:C.shLg }} onClick={e=>e.stopPropagation()}>
         <div style={{ display:"flex", alignItems:"center", gap:14, marginBottom:16 }}>
-          <div style={{ width:44, height:44, borderRadius:"50%", background:C.navy, display:"flex",
-            alignItems:"center", justifyContent:"center", fontSize:16, fontWeight:700,
-            color:"#FBF5EE", fontFamily:F.head, flexShrink:0 }}>
+          <div style={{ width:44, height:44, borderRadius:"50%", background:C.navy, display:"flex", alignItems:"center", justifyContent:"center", fontSize:16, fontWeight:700, color:"#FBF5EE", fontFamily:F.head, flexShrink:0 }}>
             {(user.nomeCompleto?.[0]||user.email[0]).toUpperCase()}
           </div>
           <div>
@@ -1019,7 +955,7 @@ const UserModal = ({ user, onClose, onToggle }) => {
 };
 
 // ─────────────────────────────────────────
-// TAB: ADMIN
+// ADMIN
 // ─────────────────────────────────────────
 const AdminTab = ({ spots }) => {
   const [view, setView]     = useState("dashboard");
@@ -1038,10 +974,8 @@ const AdminTab = ({ spots }) => {
       if (v==="logs")         setLogs(await api.adminLogs());
       if (v==="reservations") setRes(await api.adminReservations());
       if (v==="users")        setUsers(await api.adminUsers());
-    } catch {}
-    setLoad(false);
+    } catch {} setLoad(false);
   };
-
   useEffect(()=>{ loadView(view); },[view]);
 
   const toggle = async uid => {
@@ -1049,48 +983,42 @@ const AdminTab = ({ spots }) => {
     const updated = await api.adminUsers(); setUsers(updated);
     if (selU) setSelU(updated.find(u=>u._id===selU._id)||null);
   };
-
   const cancelRes = async rid => {
     if (!window.confirm("Cancelar esta reserva?")) return;
     await api.adminCancelRes(rid); loadView("reservations");
   };
 
-  const row = { background:C.bgCard, borderRadius:14, padding:"12px 16px",
-    display:"flex", justifyContent:"space-between", alignItems:"center",
-    flexWrap:"wrap", gap:7, boxShadow:C.sh, border:`1px solid ${C.border}` };
-
+  const row = { background:C.bgCard, borderRadius:14, padding:"12px 16px", display:"flex", justifyContent:"space-between", alignItems:"center", flexWrap:"wrap", gap:7, boxShadow:C.sh, border:`1px solid ${C.border}` };
   const fU = users.filter(u=>!search||(u.email+u.nomeCompleto+u.username).toLowerCase().includes(search.toLowerCase()));
   const fR = res.filter(r=>!search||(r.user?.email+r.user?.nomeCompleto+r.spotNumber).toLowerCase().includes(search.toLowerCase()));
+
+  const noShows = res.filter(r=>r.status==="no_show").length;
 
   return (
     <div>
       <UserModal user={selU} onClose={()=>setSelU(null)} onToggle={toggle}/>
-
       <div style={{ display:"flex", gap:6, marginBottom:18, flexWrap:"wrap" }}>
         {[["dashboard","Dashboard"],["reservations","Reservas"],["users","Usuários"],["logs","Logs"]].map(([v,l])=>(
-          <button key={v} onClick={()=>{setView(v);setSearch("");}} style={{
-            padding:"8px 20px", borderRadius:20, background:view===v?C.navy:C.border,
-            color:view===v?"#FBF5EE":C.textMid, border:"none", fontSize:13, fontWeight:600,
-            cursor:"pointer", fontFamily:F.body, transition:"all .15s",
-          }}>{l}</button>
+          <button key={v} onClick={()=>{setView(v);setSearch("");}} style={{ padding:"8px 20px", borderRadius:20, background:view===v?C.navy:C.border, color:view===v?"#FBF5EE":C.textMid, border:"none", fontSize:13, fontWeight:600, cursor:"pointer", fontFamily:F.body, transition:"all .15s" }}>
+            {l}{v==="reservations"&&noShows>0&&<span style={{ marginLeft:6, background:C.red, color:"#fff", borderRadius:20, padding:"1px 7px", fontSize:10 }}>{noShows}</span>}
+          </button>
         ))}
       </div>
-
       {(view==="users"||view==="reservations")&&(
         <div style={{ marginBottom:14 }}>
-          <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Buscar..."
-            style={{ width:"100%", maxWidth:300, padding:"9px 16px", borderRadius:20,
-              border:`1.5px solid ${C.border}`, fontSize:13, fontFamily:F.body,
-              background:C.bgSoft, color:C.text, outline:"none" }}/>
+          <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Buscar..." style={{ width:"100%", maxWidth:300, padding:"9px 16px", borderRadius:20, border:`1.5px solid ${C.border}`, fontSize:13, fontFamily:F.body, background:C.bgSoft, color:C.text, outline:"none" }}/>
         </div>
       )}
-
       {load&&<div style={{ display:"flex", justifyContent:"center", padding:"30px 0" }}><Spin/></div>}
 
-      {/* DASHBOARD */}
       {!load&&view==="dashboard"&&dash&&(
         <div>
-          <div className="dash-grid" style={{ display:"grid", gridTemplateColumns:"repeat(4,1fr)", gap:10, marginBottom:20 }}>
+          {noShows>0&&(
+            <InfoBox color={C.redDark} bg={C.redBg} icon="⚠" style={{ marginBottom:16 }}>
+              <strong>{noShows} no-show(s) pendente(s)</strong> — vagas foram liberadas automaticamente. Clientes precisam pagar a multa de {fmtMoney(CFG.noShowFine)} para usar novamente.
+            </InfoBox>
+          )}
+          <div className="dash-grid" style={{ display:"grid", gridTemplateColumns:"repeat(4,1fr)", gap:10, marginBottom:18 }}>
             {[
               { label:"Usuários",     value:dash.totalUsers,            color:C.navy,   bg:C.navyLight },
               { label:"Reservas",     value:dash.totalReservations,     color:C.purple, bg:C.purpleBg  },
@@ -1107,16 +1035,13 @@ const AdminTab = ({ spots }) => {
               </div>
             ))}
           </div>
-
-          {/* Mapa em tempo real no admin — MELHORIA 5 */}
-          <Card style={{ marginBottom:16, padding:18 }}>
-            <h3 style={{ fontFamily:F.head, fontSize:14, fontWeight:700, color:C.navy, marginBottom:14 }}>Mapa em Tempo Real</h3>
+          <Card style={{ marginBottom:14, padding:18 }}>
+            <h3 style={{ fontFamily:F.head, fontSize:14, fontWeight:700, color:C.navy, marginBottom:12 }}>Mapa em Tempo Real</h3>
             <ParkingGrid spots={spots} selId={null} onSpotClick={()=>{}} clickable={false}/>
           </Card>
-
           {dash.revenueWeek?.length>0&&(
             <Card style={{ padding:18 }}>
-              <h3 style={{ fontFamily:F.head, fontSize:14, fontWeight:700, color:C.navy, marginBottom:14 }}>Receita — Últimos 7 dias</h3>
+              <h3 style={{ fontFamily:F.head, fontSize:14, fontWeight:700, color:C.navy, marginBottom:12 }}>Receita — Últimos 7 dias</h3>
               {dash.revenueWeek.map(d=>(
                 <div key={d._id} style={{ display:"flex", alignItems:"center", gap:10, marginBottom:7 }}>
                   <span style={{ fontSize:11, color:C.textMid, minWidth:36, fontFamily:F.body }}>{d._id}</span>
@@ -1131,10 +1056,9 @@ const AdminTab = ({ spots }) => {
         </div>
       )}
 
-      {/* RESERVAS */}
       {!load&&view==="reservations"&&(
         <div style={{ display:"flex", flexDirection:"column", gap:7 }}>
-          {fR.length===0&&<p style={{ color:C.textLight, fontSize:13, fontFamily:F.body }}>Nenhuma reserva encontrada.</p>}
+          {fR.length===0&&<p style={{ color:C.textLight, fontSize:13, fontFamily:F.body }}>Nenhuma reserva.</p>}
           {fR.map(r=>(
             <div key={r._id} style={row}>
               <div style={{ display:"flex", alignItems:"center", gap:8, flexWrap:"wrap" }}>
@@ -1144,11 +1068,10 @@ const AdminTab = ({ spots }) => {
                 <Bdg color={C.purple} bg={C.purpleBg}>Vaga {r.spotNumber}</Bdg>
                 <span style={{ fontSize:12, color:C.textMid, fontFamily:F.body }}>às {r.startTimeStr}</span>
                 {r.placa&&<Bdg color={C.navyMid} bg={C.navyLight}>{r.placa}</Bdg>}
-                {r.status==="paid"
-                  ? <Bdg color={C.greenDark} bg={C.greenBg}>Pago {fmtMoney(r.totalPrice)}</Bdg>
-                  : r.status==="cancelled"
-                    ? <Bdg color={C.red} bg={C.redBg}>Cancelada</Bdg>
-                    : <Bdg color={C.amberDark} bg={C.amberBg}>Em uso</Bdg>}
+                {r.status==="paid"      && <Bdg color={C.greenDark} bg={C.greenBg}>Pago {fmtMoney(r.totalPrice)}</Bdg>}
+                {r.status==="cancelled" && <Bdg color={C.textMid}   bg={C.bgDark}>Cancelado</Bdg>}
+                {r.status==="no_show"   && <Bdg color={C.red}       bg={C.redBg}>No-show ⚠</Bdg>}
+                {r.status==="active"    && <Bdg color={C.amberDark} bg={C.amberBg}>Em uso</Bdg>}
               </div>
               <div style={{ display:"flex", alignItems:"center", gap:8 }}>
                 <span style={{ fontSize:11, color:C.textLight, fontFamily:F.body }}>{fmtDate(r.createdAt)}</span>
@@ -1159,30 +1082,22 @@ const AdminTab = ({ spots }) => {
         </div>
       )}
 
-      {/* USUÁRIOS */}
       {!load&&view==="users"&&(
         <div style={{ display:"flex", flexDirection:"column", gap:7 }}>
           {fU.map(u=>(
             <div key={u._id} style={{ ...row, cursor:"pointer" }} onClick={()=>setSelU(u)}>
               <div style={{ display:"flex", alignItems:"center", gap:11 }}>
-                <div style={{ width:36, height:36, borderRadius:"50%",
-                  background:u.isAdmin?C.navy:u.ativo?C.border:C.redBg,
-                  display:"flex", alignItems:"center", justifyContent:"center",
-                  fontSize:13, fontWeight:700, color:u.isAdmin?"#FBF5EE":u.ativo?C.textMid:C.red,
-                  fontFamily:F.head, flexShrink:0 }}>
+                <div style={{ width:36, height:36, borderRadius:"50%", background:u.isAdmin?C.navy:u.ativo?C.border:C.redBg, display:"flex", alignItems:"center", justifyContent:"center", fontSize:13, fontWeight:700, color:u.isAdmin?"#FBF5EE":u.ativo?C.textMid:C.red, fontFamily:F.head, flexShrink:0 }}>
                   {(u.nomeCompleto?.[0]||u.email[0]).toUpperCase()}
                 </div>
                 <div>
-                  <p style={{ fontSize:13, fontWeight:600, color:C.navy, margin:0, fontFamily:F.body }}>
-                    {u.nomeCompleto||u.email}
-                    {u.username&&<span style={{ fontSize:11, color:C.textLight, marginLeft:6 }}>@{u.username}</span>}
-                  </p>
+                  <p style={{ fontSize:13, fontWeight:600, color:C.navy, margin:0, fontFamily:F.body }}>{u.nomeCompleto||u.email}{u.username&&<span style={{ fontSize:11, color:C.textLight, marginLeft:6 }}>@{u.username}</span>}</p>
                   <p style={{ fontSize:11, color:C.textLight, margin:0, fontFamily:F.body }}>{u.email}</p>
                 </div>
               </div>
               <div style={{ display:"flex", alignItems:"center", gap:7 }}>
-                {u.isAdmin&&<Tag color={C.navyMid} bg={C.navyLight}>Admin</Tag>}
-                {!u.ativo&&<Tag color={C.red} bg={C.redBg}>Inativo</Tag>}
+                {u.isAdmin&&<Bdg color={C.navyMid} bg={C.navyLight}>Admin</Bdg>}
+                {!u.ativo&&<Bdg color={C.red} bg={C.redBg}>Inativo</Bdg>}
                 <span style={{ fontSize:11, color:C.textLight, fontFamily:F.body }}>{new Date(u.createdAt).toLocaleDateString("pt-BR")}</span>
               </div>
             </div>
@@ -1190,18 +1105,13 @@ const AdminTab = ({ spots }) => {
         </div>
       )}
 
-      {/* LOGS */}
       {!load&&view==="logs"&&(
         <div style={{ display:"flex", flexDirection:"column", gap:6 }}>
           {logs.length===0&&<p style={{ color:C.textLight, fontSize:13, fontFamily:F.body }}>Nenhum log.</p>}
           {logs.map(log=>(
             <div key={log._id} style={row}>
               <div style={{ display:"flex", alignItems:"center", gap:10 }}>
-                <div style={{ width:30, height:30, borderRadius:"50%", background:C.navyLight,
-                  display:"flex", alignItems:"center", justifyContent:"center",
-                  fontSize:11, fontWeight:700, color:C.navy, fontFamily:F.head, flexShrink:0 }}>
-                  {log.email[0].toUpperCase()}
-                </div>
+                <div style={{ width:30, height:30, borderRadius:"50%", background:C.navyLight, display:"flex", alignItems:"center", justifyContent:"center", fontSize:11, fontWeight:700, color:C.navy, fontFamily:F.head, flexShrink:0 }}>{log.email[0].toUpperCase()}</div>
                 <div>
                   <p style={{ fontSize:13, fontWeight:600, color:C.navy, margin:0, fontFamily:F.body }}>{log.email}</p>
                   <p style={{ fontSize:12, color:C.textMid, margin:0, fontFamily:F.body }}>{log.action}</p>
@@ -1217,32 +1127,20 @@ const AdminTab = ({ spots }) => {
 };
 
 // ─────────────────────────────────────────
-// NAV MOBILE — só aparece no mobile via CSS
+// NAV MOBILE
 // ─────────────────────────────────────────
 const MobileNav = ({ tab, setTab, isAdmin }) => {
   const tabs = [
-    { id:"overview", icon:"🅿", label:"Vagas"    },
-    { id:"reserve",  icon:"＋", label:"Reservar"  },
-    { id:"payment",  icon:"⏱", label:"Pagar"     },
-    { id:"profile",  icon:"👤", label:"Conta"     },
+    { id:"overview", icon:"🅿", label:"Vagas"   },
+    { id:"reserve",  icon:"＋", label:"Reservar" },
+    { id:"payment",  icon:"⏱", label:"Pagar"    },
+    { id:"profile",  icon:"👤", label:"Conta"    },
     ...(isAdmin?[{ id:"admin", icon:"⚙", label:"Admin" }]:[]),
   ];
   return (
-    <div className="mobile-nav-bar" style={{
-      position:"fixed", bottom:0, left:0, right:0, zIndex:200,
-      background:C.bgCard, borderTop:`1px solid ${C.border}`,
-      alignItems:"stretch", boxShadow:"0 -4px 20px rgba(61,43,26,0.10)",
-    }}>
+    <div className="mobile-nav-bar" style={{ position:"fixed", bottom:0, left:0, right:0, zIndex:200, background:C.bgCard, borderTop:`1px solid ${C.border}`, alignItems:"stretch", boxShadow:"0 -4px 20px rgba(61,43,26,0.10)" }}>
       {tabs.map(t=>(
-        <button key={t.id} onClick={()=>setTab(t.id)} style={{
-          flex:1, padding:"10px 4px 8px", border:"none",
-          background:tab===t.id?C.navyLight:"transparent",
-          color:tab===t.id?C.navy:C.textLight,
-          cursor:"pointer", display:"flex", flexDirection:"column",
-          alignItems:"center", gap:2, transition:"all .15s",
-          borderTop:tab===t.id?`2px solid ${C.navy}`:"2px solid transparent",
-          fontFamily:F.body,
-        }}>
+        <button key={t.id} onClick={()=>setTab(t.id)} style={{ flex:1, padding:"10px 4px 8px", border:"none", background:tab===t.id?C.navyLight:"transparent", color:tab===t.id?C.navy:C.textLight, cursor:"pointer", display:"flex", flexDirection:"column", alignItems:"center", gap:2, transition:"all .15s", borderTop:tab===t.id?`2px solid ${C.navy}`:"2px solid transparent", fontFamily:F.body }}>
           <span style={{ fontSize:17, lineHeight:1 }}>{t.icon}</span>
           <span style={{ fontSize:9, fontWeight:600, letterSpacing:.3 }}>{t.label}</span>
         </button>
@@ -1260,11 +1158,13 @@ export default function App() {
   const [activeRes, setActiveRes] = useState(null);
   const [tab, setTab]             = useState("overview");
   const [booting, setBoot]        = useState(true);
+  const [cfg, setCfg]             = useState(CFG);
 
   useEffect(()=>{
     const t = localStorage.getItem("omv_token");
     if (!t){ setBoot(false); return; }
     api.me().then(({user})=>setUser(user)).catch(()=>localStorage.removeItem("omv_token")).finally(()=>setBoot(false));
+    api.resConfig().then(c=>{ CFG=c; setCfg(c); }).catch(()=>{});
   },[]);
 
   useEffect(()=>{
@@ -1282,8 +1182,7 @@ export default function App() {
     <div style={{ minHeight:"100vh", width:"100%", background:C.bg, display:"flex", alignItems:"center", justifyContent:"center" }}>
       <style>{GF+CSS}</style>
       <div style={{ textAlign:"center", display:"flex", flexDirection:"column", alignItems:"center", gap:12 }}>
-        <Spin size={26}/>
-        <p style={{ fontFamily:F.head, fontSize:14, color:C.textLight, marginTop:4 }}>Carregando...</p>
+        <Spin size={26}/><p style={{ fontFamily:F.head, fontSize:14, color:C.textLight, marginTop:4 }}>Carregando...</p>
       </div>
     </div>
   );
@@ -1304,20 +1203,12 @@ export default function App() {
     <div style={{ width:"100%", minHeight:"100vh", background:C.bg, fontFamily:F.body }}>
       <style>{GF+CSS}</style>
 
-      {/* HEADER DESKTOP — some no mobile via CSS */}
       <header className="desktop-header" style={{ background:C.bgCard, borderBottom:`1px solid ${C.border}`, position:"sticky", top:0, zIndex:100, width:"100%" }}>
         <div style={{ width:"100%", padding:"0 48px", height:62, display:"flex", alignItems:"center", justifyContent:"space-between", gap:16 }}>
-          <div style={{ fontFamily:F.head, fontSize:20, fontWeight:700, color:C.navy, whiteSpace:"nowrap" }}>
-            ◈ Estacionamento OMV
-          </div>
+          <div style={{ fontFamily:F.head, fontSize:20, fontWeight:700, color:C.navy, whiteSpace:"nowrap" }}>◈ Estacionamento OMV</div>
           <nav style={{ display:"flex", gap:4 }}>
             {desktopTabs.map(t=>(
-              <button key={t.id} onClick={()=>setTab(t.id)} style={{
-                padding:"8px 18px", borderRadius:20, border:"none",
-                background:tab===t.id?C.navy:"transparent",
-                color:tab===t.id?"#FBF5EE":C.textMid,
-                fontSize:13, fontWeight:600, cursor:"pointer", fontFamily:F.body, transition:"all .15s", whiteSpace:"nowrap",
-              }}>{t.label}</button>
+              <button key={t.id} onClick={()=>setTab(t.id)} style={{ padding:"8px 18px", borderRadius:20, border:"none", background:tab===t.id?C.navy:"transparent", color:tab===t.id?"#FBF5EE":C.textMid, fontSize:13, fontWeight:600, cursor:"pointer", fontFamily:F.body, transition:"all .15s", whiteSpace:"nowrap" }}>{t.label}</button>
             ))}
           </nav>
           <div style={{ display:"flex", alignItems:"center", gap:12, flexShrink:0 }}>
@@ -1330,19 +1221,17 @@ export default function App() {
         </div>
       </header>
 
-      {/* CONTEÚDO */}
       <main className="main-content" style={{ width:"100%", padding:"30px 48px" }}>
         <h1 className="page-title" style={{ fontFamily:F.head, fontSize:24, fontWeight:700, color:C.navy, marginBottom:20 }}>
           {titles[tab]}
         </h1>
         {tab==="overview" && <OverviewTab spots={spots}/>}
-        {tab==="reserve"  && <ReserveTab spots={spots} activeRes={activeRes} onReserved={()=>{loadSpots();loadRes();}} setTab={setTab}/>}
-        {tab==="payment"  && <PaymentTab activeRes={activeRes} onPaid={()=>{loadSpots();setActiveRes(null);}}/>}
+        {tab==="reserve"  && <ReserveTab spots={spots} activeRes={activeRes} onReserved={()=>{loadSpots();loadRes();}} setTab={setTab} cfg={cfg}/>}
+        {tab==="payment"  && <PaymentTab activeRes={activeRes} onPaid={()=>{loadSpots();setActiveRes(null);}} cfg={cfg}/>}
         {tab==="profile"  && <ProfileTab user={user} onLogout={logout}/>}
         {tab==="admin"&&user.isAdmin&&<AdminTab spots={spots}/>}
       </main>
 
-      {/* NAV MOBILE — controlada por CSS, não por JS */}
       <MobileNav tab={tab} setTab={setTab} isAdmin={user.isAdmin}/>
     </div>
   );
