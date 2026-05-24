@@ -38,6 +38,8 @@ const api = {
   adminDashboard:    ()                 => request("/admin/dashboard"),
   toggleUser:        (id)               => request(`/admin/users/${id}/toggle`,        { method:"PATCH" }),
   adminCancelRes:    (id)               => request(`/admin/reservations/${id}/cancel`,  { method:"POST" }),
+  sensorUpdate:      (spotNumber, occ)  => request("/spots/sensor", { method:"POST", body:JSON.stringify({ spotNumber, occupied:occ }) }),
+  health:            ()                 => fetch(`${BASE}/health`).then(r=>r.json()).catch(()=>({ status:"error" })),
 };
 
 // ─────────────────────────────────────────
@@ -52,12 +54,15 @@ html, body { width:100%; min-height:100vh; overflow-x:hidden; font-synthesis:non
 body { background:#F2EDE5; }
 html, body, #root { margin:0 !important; padding:0 !important; }
 
-@keyframes spin    { to { transform:rotate(360deg); } }
-@keyframes fadeIn  { from { opacity:0; transform:translateY(6px); } to { opacity:1; transform:translateY(0); } }
-@keyframes slideUp { from { opacity:0; transform:translateY(14px); } to { opacity:1; transform:translateY(0); } }
-@keyframes pulse   { 0%,100%{opacity:1} 50%{opacity:.4} }
+@keyframes spin     { to { transform:rotate(360deg); } }
+@keyframes fadeIn   { from { opacity:0; transform:translateY(6px); } to { opacity:1; transform:translateY(0); } }
+@keyframes slideUp  { from { opacity:0; transform:translateY(14px); } to { opacity:1; transform:translateY(0); } }
+@keyframes slideIn  { from { opacity:0; transform:translateX(40px); } to { opacity:1; transform:translateX(0); } }
+@keyframes pulse    { 0%,100%{opacity:1} 50%{opacity:.35} }
+@keyframes blink    { 0%,100%{opacity:1} 50%{opacity:.2} }
 .fade-in  { animation:fadeIn .2s ease both; }
 .slide-up { animation:slideUp .25s ease both; }
+.slide-in { animation:slideIn .3s ease both; }
 
 ::-webkit-scrollbar { width:4px; }
 ::-webkit-scrollbar-thumb { background:#C9BAA5; border-radius:10px; }
@@ -84,12 +89,17 @@ html, body, #root { margin:0 !important; padding:0 !important; }
   .timer-num       { font-size:34px !important; }
   .fee-row         { flex-direction:column !important; gap:6px !important; }
   .res-sel-panel   { width:100% !important; }
+  .hero-title      { font-size:28px !important; }
+  .hero-sub        { font-size:14px !important; }
+  .hero-cards      { grid-template-columns:1fr !important; }
+  .about-grid      { grid-template-columns:1fr !important; }
 }
 @media (max-width:420px) {
   .page-title { font-size:15px !important; }
   .timer-num  { font-size:26px !important; }
   .dash-grid  { grid-template-columns:1fr 1fr !important; }
   .model-btns { grid-template-columns:repeat(3,1fr) !important; }
+  .hero-title { font-size:22px !important; }
 }
 `;
 
@@ -115,8 +125,6 @@ const SM = {
 };
 
 const F = { head:"'Fraunces',serif", body:"'Plus Jakarta Sans',sans-serif" };
-
-// Config padrão (sobrescrita pela API)
 let CFG = { pricePerHour:80, reservationFee:10, toleranceMinutes:5, noShowFine:20 };
 
 // ─────────────────────────────────────────
@@ -210,6 +218,38 @@ const Divider = ({ label="" }) => (
 );
 
 // ─────────────────────────────────────────
+// NOTIFICAÇÕES EM TEMPO REAL
+// ─────────────────────────────────────────
+const NotificationCenter = ({ notifications }) => {
+  if (!notifications.length) return null;
+  return (
+    <div style={{ position:"fixed", top:70, right:16, zIndex:500, display:"flex", flexDirection:"column", gap:8, maxWidth:300 }}>
+      {notifications.map(n=>(
+        <div key={n.id} className="slide-in" style={{
+          background:n.type==="occupied"?C.redBg:n.type==="available"?C.greenBg:C.amberBg,
+          border:`1px solid ${n.type==="occupied"?C.red:n.type==="available"?C.green:C.amber}`,
+          borderRadius:12, padding:"10px 14px", boxShadow:C.shLg,
+          display:"flex", alignItems:"center", gap:10,
+        }}>
+          <span style={{ fontSize:16 }}>{n.type==="occupied"?"🚗":n.type==="available"?"✅":"⚠"}</span>
+          <p style={{ fontSize:12.5, color:C.text, margin:0, fontFamily:F.body, lineHeight:1.4 }}>{n.msg}</p>
+        </div>
+      ))}
+    </div>
+  );
+};
+
+// ─────────────────────────────────────────
+// INDICADOR DE CONEXÃO
+// ─────────────────────────────────────────
+const ConnectionDot = ({ online }) => (
+  <div style={{ display:"flex", alignItems:"center", gap:6 }}>
+    <div style={{ width:8, height:8, borderRadius:"50%", background:online?C.green:C.red, animation:online?"none":"blink 1.5s infinite", flexShrink:0 }}/>
+    <span style={{ fontSize:11, color:online?C.green:C.red, fontWeight:600, fontFamily:F.body }}>{online?"Online":"Offline"}</span>
+  </div>
+);
+
+// ─────────────────────────────────────────
 // CAR ICON
 // ─────────────────────────────────────────
 const CarIcon = ({ color="currentColor", size=34 }) => (
@@ -247,7 +287,7 @@ const SpotCard = ({ spot, isSel, onClick, clickable }) => {
 };
 
 // ─────────────────────────────────────────
-// PARKING GRID — 12 VAGAS
+// PARKING GRID
 // ─────────────────────────────────────────
 const ParkingGrid = ({ spots, selId, onSpotClick, clickable=false }) => {
   const RoadH = ({ label }) => (
@@ -308,9 +348,90 @@ const ParkingGrid = ({ spots, selId, onSpotClick, clickable=false }) => {
 };
 
 // ─────────────────────────────────────────
+// LANDING PAGE — NOVA
+// ─────────────────────────────────────────
+const LandingPage = ({ onEnter }) => (
+  <div style={{ minHeight:"100vh", width:"100%", background:C.bg, fontFamily:F.body }}>
+    <style>{GF+CSS}</style>
+    {/* Header */}
+    <header style={{ background:C.bgCard, borderBottom:`1px solid ${C.border}`, padding:"0 48px", height:62, display:"flex", alignItems:"center", justifyContent:"space-between" }}>
+      <div style={{ fontFamily:F.head, fontSize:20, fontWeight:700, color:C.navy }}>◈ Estacionamento OMV</div>
+      <Btn onClick={onEnter} sm>Acessar o sistema →</Btn>
+    </header>
+
+    {/* Hero */}
+    <div style={{ maxWidth:900, margin:"0 auto", padding:"72px 24px 48px", textAlign:"center" }}>
+      <div style={{ display:"inline-flex", alignItems:"center", gap:8, background:C.greenBg, border:`1px solid ${C.green}30`, borderRadius:20, padding:"6px 16px", marginBottom:24 }}>
+        <div style={{ width:8, height:8, borderRadius:"50%", background:C.green, animation:"pulse 2s infinite" }}/>
+        <span style={{ fontSize:12, color:C.greenDark, fontWeight:600 }}>Sistema em operação</span>
+      </div>
+      <h1 className="hero-title" style={{ fontFamily:F.head, fontSize:48, fontWeight:700, color:C.navy, lineHeight:1.15, marginBottom:20 }}>
+        Estacionamento inteligente<br/>do jeito que deveria ser
+      </h1>
+      <p className="hero-sub" style={{ fontSize:17, color:C.textLight, maxWidth:560, margin:"0 auto 36px", lineHeight:1.7 }}>
+        O <strong style={{ color:C.navy }}>OMV</strong> monitora suas vagas em tempo real, permite reservas antecipadas e integra sensores físicos à plataforma digital.
+      </p>
+      <div style={{ display:"flex", gap:12, justifyContent:"center", flexWrap:"wrap" }}>
+        <Btn onClick={onEnter} style={{ padding:"14px 32px", fontSize:16 }}>Entrar no sistema</Btn>
+        <Btn v="outline" onClick={()=>document.getElementById("sobre").scrollIntoView({behavior:"smooth"})} style={{ padding:"14px 32px", fontSize:16 }}>Sobre o projeto</Btn>
+      </div>
+    </div>
+
+    {/* Cards de features */}
+    <div className="hero-cards" style={{ display:"grid", gridTemplateColumns:"repeat(3,1fr)", gap:16, maxWidth:900, margin:"0 auto 64px", padding:"0 24px" }}>
+      {[
+        { icon:"🅿️", title:"Monitoramento em tempo real", desc:"Visualize todas as vagas do estacionamento ao vivo, com atualização automática via sensores ESP32." },
+        { icon:"📅", title:"Reservas antecipadas", desc:"Reserve sua vaga com hora marcada. Taxa fixa de reserva garante segurança para o operador e o cliente." },
+        { icon:"📊", title:"Painel administrativo", desc:"Dashboard completo com métricas, histórico de reservas, gestão de usuários e logs de acesso." },
+      ].map(c=>(
+        <div key={c.title} style={{ background:C.bgCard, borderRadius:18, padding:"22px 20px", border:`1px solid ${C.border}`, boxShadow:C.sh }}>
+          <div style={{ fontSize:28, marginBottom:12 }}>{c.icon}</div>
+          <h3 style={{ fontFamily:F.head, fontSize:16, fontWeight:600, color:C.navy, marginBottom:8 }}>{c.title}</h3>
+          <p style={{ fontSize:13, color:C.textLight, lineHeight:1.7, margin:0 }}>{c.desc}</p>
+        </div>
+      ))}
+    </div>
+
+    {/* Sobre o projeto */}
+    <div id="sobre" style={{ background:C.bgCard, borderTop:`1px solid ${C.border}`, padding:"64px 24px" }}>
+      <div style={{ maxWidth:820, margin:"0 auto" }}>
+        <h2 style={{ fontFamily:F.head, fontSize:28, fontWeight:700, color:C.navy, marginBottom:16, textAlign:"center" }}>Sobre o Projeto</h2>
+        <p style={{ fontSize:14, color:C.textMid, lineHeight:1.9, marginBottom:28, textAlign:"center", maxWidth:640, margin:"0 auto 32px" }}>
+          O <strong>OMV – Otimização e Monitoramento de Vagas</strong> é um projeto de conclusão de curso do curso Técnico em Eletrônica, desenvolvido com o objetivo de aplicar conceitos de IoT, sistemas embarcados e desenvolvimento web na resolução de um problema real.
+        </p>
+        <div className="about-grid" style={{ display:"grid", gridTemplateColumns:"repeat(2,1fr)", gap:16 }}>
+          {[
+            { icon:"🔧", title:"Hardware", desc:"ESP32 + sensores HC-SR04 detectam veículos e enviam dados via Wi-Fi para a nuvem em tempo real." },
+            { icon:"☁️", title:"Backend", desc:"Node.js + MongoDB Atlas gerenciam reservas, usuários, pagamentos e regras de negócio." },
+            { icon:"💻", title:"Frontend", desc:"React + Vite oferecem interface responsiva para clientes e operadores, acessível em qualquer dispositivo." },
+            { icon:"🔒", title:"Segurança", desc:"Taxa de reserva, tolerância de chegada, no-show automático e multas garantem operação confiável." },
+          ].map(i=>(
+            <div key={i.title} style={{ display:"flex", gap:14, padding:"16px", background:C.bgSoft, borderRadius:14, border:`1px solid ${C.border}` }}>
+              <span style={{ fontSize:24, flexShrink:0 }}>{i.icon}</span>
+              <div>
+                <h4 style={{ fontFamily:F.head, fontSize:14, fontWeight:600, color:C.navy, marginBottom:4 }}>{i.title}</h4>
+                <p style={{ fontSize:12.5, color:C.textLight, lineHeight:1.6, margin:0 }}>{i.desc}</p>
+              </div>
+            </div>
+          ))}
+        </div>
+        <div style={{ textAlign:"center", marginTop:36 }}>
+          <Btn onClick={onEnter} style={{ padding:"13px 36px", fontSize:15 }}>Acessar o sistema →</Btn>
+        </div>
+      </div>
+    </div>
+
+    <footer style={{ background:C.bgDark, borderTop:`1px solid ${C.border}`, padding:"20px 48px", display:"flex", alignItems:"center", justifyContent:"space-between", flexWrap:"wrap", gap:10 }}>
+      <span style={{ fontFamily:F.head, fontSize:14, fontWeight:600, color:C.navy }}>◈ Estacionamento OMV</span>
+      <span style={{ fontSize:12, color:C.textLight }}>Projeto de TCC — Curso Técnico em Eletrônica</span>
+    </footer>
+  </div>
+);
+
+// ─────────────────────────────────────────
 // LOGIN
 // ─────────────────────────────────────────
-const LoginScreen = ({ onLogin }) => {
+const LoginScreen = ({ onLogin, onBack }) => {
   const [mode, setMode] = useState("login");
   const [form, setForm] = useState({ nomeCompleto:"", username:"", cpf:"", endereco:"", telefone:"", email:"", password:"" });
   const [err, setErr]   = useState("");
@@ -331,6 +452,7 @@ const LoginScreen = ({ onLogin }) => {
   return (
     <div style={{ minHeight:"100vh", width:"100%", background:C.bg, display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", fontFamily:F.body, padding:"24px 16px" }}>
       <style>{GF+CSS}</style>
+      <button onClick={onBack} style={{ position:"fixed", top:20, left:20, background:"none", border:"none", cursor:"pointer", color:C.textLight, fontSize:13, fontFamily:F.body, display:"flex", alignItems:"center", gap:4 }}>← Voltar</button>
       <div style={{ textAlign:"center", marginBottom:28 }}>
         <div style={{ fontFamily:F.head, fontSize:26, fontWeight:700, color:C.navy, marginBottom:4 }}>◈ Estacionamento OMV</div>
         <p style={{ fontSize:13, color:C.textLight }}>Sistema Inteligente de Estacionamento</p>
@@ -377,7 +499,7 @@ const OverviewTab = ({ spots }) => {
   const avail = spots.filter(s=>s.status==="available").length;
   const occ   = spots.filter(s=>s.status==="occupied"||s.status==="reserved").length;
   const pref  = spots.filter(s=>s.status==="preferential").length;
-  const pct   = spots.length ? Math.round((occ/spots.length)*100) : 0;
+  const pct   = spots.length?Math.round((occ/spots.length)*100):0;
   return (
     <div>
       <div style={{ display:"flex", gap:10, marginBottom:16, flexWrap:"wrap" }}>
@@ -393,7 +515,6 @@ const OverviewTab = ({ spots }) => {
           </div>
         ))}
       </div>
-      {/* Barra de ocupação */}
       <div style={{ background:C.bgCard, borderRadius:14, padding:"13px 16px", marginBottom:16, border:`1px solid ${C.border}`, boxShadow:C.sh }}>
         <div style={{ display:"flex", justifyContent:"space-between", marginBottom:7 }}>
           <span style={{ fontSize:12, fontWeight:600, color:C.textMid, fontFamily:F.body }}>Taxa de ocupação</span>
@@ -425,7 +546,6 @@ const ReserveTab = ({ spots, activeRes, onReserved, setTab, cfg }) => {
   const [step, setStep]     = useState(1);
   const [cancelLoad, setCancelLoad] = useState(false);
   const [cancelResult, setCancelResult] = useState(null);
-
   const MODELOS = ["HB20","Onix","Gol","Argo","Mobi","Kwid","Creta","T-Cross","Compass","Tracker","Outros"];
 
   const handleConfirm = async () => {
@@ -444,11 +564,8 @@ const ReserveTab = ({ spots, activeRes, onReserved, setTab, cfg }) => {
   const handleCancel = async () => {
     if (!window.confirm("Deseja cancelar sua reserva?")) return;
     setCancelLoad(true);
-    try {
-      const r = await api.cancelReservation(activeRes._id);
-      setCancelResult(r);
-      onReserved();
-    } catch(e) { alert(e.message); } finally { setCancelLoad(false); }
+    try { const r = await api.cancelReservation(activeRes._id); setCancelResult(r); onReserved(); }
+    catch(e) { alert(e.message); } finally { setCancelLoad(false); }
   };
 
   if (cancelResult) return (
@@ -458,11 +575,11 @@ const ReserveTab = ({ spots, activeRes, onReserved, setTab, cfg }) => {
           <div style={{ fontSize:40, marginBottom:10 }}>{cancelResult.feeRefunded?"✅":"💸"}</div>
           <p style={{ fontFamily:F.head, fontSize:18, fontWeight:700, color:C.navy, marginBottom:6 }}>Reserva cancelada</p>
           {cancelResult.feeRefunded
-            ? <p style={{ fontSize:13, color:C.green, fontFamily:F.body }}>Taxa de reserva reembolsada — você cancelou com mais de 15 min de antecedência.</p>
+            ? <p style={{ fontSize:13, color:C.green, fontFamily:F.body }}>Taxa de reserva reembolsada — cancelamento com mais de 15 min de antecedência.</p>
             : <p style={{ fontSize:13, color:C.red, fontFamily:F.body }}>A taxa de reserva de <strong>{fmtMoney(cfg.reservationFee)}</strong> foi retida por cancelamento tardio.</p>
           }
         </div>
-        <Btn full onClick={()=>{ setCancelResult(null); setStep(1); }} v="ghost">Fechar</Btn>
+        <Btn full onClick={()=>{setCancelResult(null);setStep(1);}} v="ghost">Fechar</Btn>
       </Card>
     </div>
   );
@@ -470,14 +587,14 @@ const ReserveTab = ({ spots, activeRes, onReserved, setTab, cfg }) => {
   if (activeRes) return (
     <div style={{ maxWidth:460, margin:"0 auto" }}>
       <Card style={{ borderLeft:`4px solid ${activeRes.status==="no_show"?C.red:C.purple}` }}>
-        {activeRes.status==="no_show" ? (
+        {activeRes.status==="no_show"?(
           <>
             <InfoBox color={C.red} bg={C.redBg} icon="⚠" style={{ marginBottom:14 }}>
-              <strong>No-show detectado.</strong> Você não compareceu no horário reservado. Uma multa de <strong>{fmtMoney(cfg.noShowFine)}</strong> foi aplicada. Pague para liberar sua conta.
+              <strong>No-show detectado.</strong> Você não compareceu no horário reservado. Multa de <strong>{fmtMoney(cfg.noShowFine)}</strong> aplicada.
             </InfoBox>
             <Btn v="danger" full onClick={()=>setTab("payment")}>Pagar Multa → {fmtMoney(cfg.noShowFine)}</Btn>
           </>
-        ) : (
+        ):(
           <>
             <div style={{ display:"flex", alignItems:"center", gap:14, marginBottom:14 }}>
               <div style={{ width:44, height:44, borderRadius:"50%", background:C.purpleBg, display:"flex", alignItems:"center", justifyContent:"center", flexShrink:0 }}>
@@ -490,7 +607,7 @@ const ReserveTab = ({ spots, activeRes, onReserved, setTab, cfg }) => {
               </div>
             </div>
             <InfoBox color={C.amberDark} bg={C.amberBg} icon="⏰" style={{ marginBottom:14 }}>
-              Tolerância de <strong>{cfg.toleranceMinutes} minutos</strong> para chegar. Após esse prazo sem detecção do veículo, a vaga é liberada automaticamente e uma multa de <strong>{fmtMoney(cfg.noShowFine)}</strong> é aplicada.
+              Tolerância de <strong>{cfg.toleranceMinutes} min</strong> para chegada. Sem detecção = vaga liberada + multa de <strong>{fmtMoney(cfg.noShowFine)}</strong>.
             </InfoBox>
             <div style={{ display:"flex", gap:8 }}>
               <Btn v="outline" full onClick={()=>setTab("payment")} style={{ borderColor:C.purple, color:C.purpleDark }}>Ir para Pagamento</Btn>
@@ -504,7 +621,7 @@ const ReserveTab = ({ spots, activeRes, onReserved, setTab, cfg }) => {
 
   return (
     <div>
-      {step===1 ? (
+      {step===1?(
         <div style={{ display:"flex", gap:20, flexWrap:"wrap", alignItems:"flex-start" }}>
           <div style={{ flex:1, minWidth:0, maxWidth:"100%" }}>
             <p style={{ fontSize:13, color:C.textLight, marginBottom:12, lineHeight:1.6, fontFamily:F.body }}>
@@ -533,7 +650,7 @@ const ReserveTab = ({ spots, activeRes, onReserved, setTab, cfg }) => {
             </div>
           )}
         </div>
-      ) : (
+      ):(
         <div style={{ maxWidth:440, margin:"0 auto" }} className="slide-up">
           <button onClick={()=>setStep(1)} style={{ background:"none", border:"none", cursor:"pointer", color:C.textLight, fontSize:13, fontFamily:F.body, marginBottom:14, display:"flex", alignItems:"center", gap:4 }}>← Voltar ao mapa</button>
           <Card>
@@ -550,28 +667,22 @@ const ReserveTab = ({ spots, activeRes, onReserved, setTab, cfg }) => {
                 <p style={{ fontSize:14, fontWeight:700, color:C.navy, fontFamily:F.head, margin:0 }}>{fmtMoney(cfg.reservationFee)} + {fmtMoney(cfg.pricePerHour)}/h</p>
               </div>
             </div>
-
-            {/* Aviso sobre taxa e tolerância */}
             <InfoBox color={C.amberDark} bg={C.amberBg} icon="ℹ" style={{ marginBottom:14 }}>
-              Taxa de reserva de <strong>{fmtMoney(cfg.reservationFee)}</strong> cobrada ao confirmar. Tolerância de <strong>{cfg.toleranceMinutes} min</strong> para chegada. Cancelamento com mais de 15 min de antecedência tem taxa reembolsada.
+              Taxa de reserva de <strong>{fmtMoney(cfg.reservationFee)}</strong> ao confirmar. Tolerância de <strong>{cfg.toleranceMinutes} min</strong>. Cancelamento com +15 min tem taxa reembolsada.
             </InfoBox>
-
             <Divider label="Quando vai usar?"/>
             <div className="form-row" style={{ display:"flex", gap:10 }}>
               <div style={{ flex:1 }}>
                 <Fld label="Data" req>
-                  <input type="date" value={date} min={todayStr()} onChange={e=>setDate(e.target.value)}
-                    style={{ width:"100%", padding:"11px 12px", borderRadius:10, border:`1.5px solid ${C.border}`, fontSize:13, fontFamily:F.body, background:C.bgSoft, color:C.text, outline:"none" }}/>
+                  <input type="date" value={date} min={todayStr()} onChange={e=>setDate(e.target.value)} style={{ width:"100%", padding:"11px 12px", borderRadius:10, border:`1.5px solid ${C.border}`, fontSize:13, fontFamily:F.body, background:C.bgSoft, color:C.text, outline:"none" }}/>
                 </Fld>
               </div>
               <div style={{ flex:1 }}>
                 <Fld label="Horário" req hint="início">
-                  <input type="time" value={time} onChange={e=>setTime(e.target.value)}
-                    style={{ width:"100%", padding:"11px 12px", borderRadius:10, border:`1.5px solid ${C.border}`, fontSize:13, fontFamily:F.body, background:C.bgSoft, color:C.text, outline:"none" }}/>
+                  <input type="time" value={time} onChange={e=>setTime(e.target.value)} style={{ width:"100%", padding:"11px 12px", borderRadius:10, border:`1.5px solid ${C.border}`, fontSize:13, fontFamily:F.body, background:C.bgSoft, color:C.text, outline:"none" }}/>
                 </Fld>
               </div>
             </div>
-
             <Divider label="Veículo (opcional)"/>
             <Fld label="Placa" hint="Ex: ABC1234">
               <Inp value={placa} onChange={e=>setPlaca(fmtPlaca(e.target.value))} placeholder="ABC1234" maxLength={7}/>
@@ -579,17 +690,10 @@ const ReserveTab = ({ spots, activeRes, onReserved, setTab, cfg }) => {
             <Fld label="Modelo">
               <div className="model-btns" style={{ display:"grid", gridTemplateColumns:"repeat(4,1fr)", gap:6 }}>
                 {MODELOS.map(mod=>(
-                  <button key={mod} onClick={()=>setModelo(m=>m===mod?"":mod)} style={{
-                    padding:"8px 4px", borderRadius:10, textAlign:"center",
-                    border:`1.5px solid ${modelo===mod?C.navy:C.border}`,
-                    background:modelo===mod?C.navy:"transparent",
-                    color:modelo===mod?"#FBF5EE":C.textMid,
-                    fontSize:11, fontWeight:600, cursor:"pointer", fontFamily:F.body, transition:"all .15s",
-                  }}>{mod}</button>
+                  <button key={mod} onClick={()=>setModelo(m=>m===mod?"":mod)} style={{ padding:"8px 4px", borderRadius:10, textAlign:"center", border:`1.5px solid ${modelo===mod?C.navy:C.border}`, background:modelo===mod?C.navy:"transparent", color:modelo===mod?"#FBF5EE":C.textMid, fontSize:11, fontWeight:600, cursor:"pointer", fontFamily:F.body, transition:"all .15s" }}>{mod}</button>
                 ))}
               </div>
             </Fld>
-
             <Err msg={err}/>
             <div style={{ display:"flex", gap:8, marginTop:8 }}>
               <Btn onClick={handleConfirm} disabled={load} full>{load?<Spin color="#FBF5EE"/>:`Confirmar — pagar ${fmtMoney(cfg.reservationFee)}`}</Btn>
@@ -603,27 +707,22 @@ const ReserveTab = ({ spots, activeRes, onReserved, setTab, cfg }) => {
 };
 
 // ─────────────────────────────────────────
-// MODAL PAGAMENTO SIMULADO
+// MODAL PAGAMENTO
 // ─────────────────────────────────────────
 const PaymentModal = ({ price, label, onConfirm, onClose }) => {
   const [method, setMethod] = useState("");
   const [step, setStep]     = useState(1);
   const [card, setCard]     = useState({ num:"", nome:"", val:"", cvv:"" });
-
-  const handlePay = () => {
-    setStep(3);
-    setTimeout(onConfirm, 2200);
-  };
-
+  const handlePay = () => { setStep(3); setTimeout(onConfirm, 2200); };
   return (
     <div style={{ position:"fixed", inset:0, background:"rgba(42,31,20,.6)", zIndex:400, display:"flex", alignItems:"center", justifyContent:"center", padding:20 }} onClick={onClose}>
       <div className="slide-up" style={{ background:C.bgCard, borderRadius:24, padding:28, maxWidth:420, width:"100%", boxShadow:C.shLg }} onClick={e=>e.stopPropagation()}>
-        {step===3 ? (
+        {step===3?(
           <div style={{ textAlign:"center", padding:"16px 0" }}>
             <Spin size={40} color={C.green}/>
             <p style={{ fontFamily:F.head, fontSize:18, fontWeight:600, color:C.navy, marginTop:16 }}>Processando...</p>
           </div>
-        ) : (
+        ):(
           <>
             <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:16 }}>
               <h2 style={{ fontFamily:F.head, fontSize:18, fontWeight:700, color:C.navy }}>{label||"Confirmar Pagamento"}</h2>
@@ -636,11 +735,11 @@ const PaymentModal = ({ price, label, onConfirm, onClose }) => {
             {step===1&&(
               <div style={{ display:"flex", flexDirection:"column", gap:10 }}>
                 {[
-                  { key:"pix",  icon:"⚡", title:"PIX",           sub:"Aprovação instantânea",  border:C.border, bg:C.bgSoft },
-                  { key:"card", icon:"💳", title:"Cartão",         sub:"Crédito ou débito",      border:C.border, bg:C.bgSoft },
+                  { key:"pix",  icon:"⚡", title:"PIX",            sub:"Aprovação instantânea",  border:C.border, bg:C.bgSoft  },
+                  { key:"card", icon:"💳", title:"Cartão",          sub:"Crédito ou débito",      border:C.border, bg:C.bgSoft  },
                   { key:"demo", icon:"🎓", title:"Modo Demo (TCC)", sub:"Sem pagamento real",     border:C.amber,  bg:C.amberBg },
                 ].map(opt=>(
-                  <button key={opt.key} onClick={()=>{ if(opt.key==="demo"){handlePay();}else{setMethod(opt.key);setStep(2);} }} style={{ display:"flex", alignItems:"center", gap:14, padding:"13px 16px", borderRadius:14, border:`2px solid ${opt.border}`, background:opt.bg, cursor:"pointer", textAlign:"left" }}>
+                  <button key={opt.key} onClick={()=>{if(opt.key==="demo"){handlePay();}else{setMethod(opt.key);setStep(2);}}} style={{ display:"flex", alignItems:"center", gap:14, padding:"13px 16px", borderRadius:14, border:`2px solid ${opt.border}`, background:opt.bg, cursor:"pointer", textAlign:"left" }}>
                     <div style={{ width:38, height:38, borderRadius:10, background:"rgba(0,0,0,.06)", display:"flex", alignItems:"center", justifyContent:"center", flexShrink:0, fontSize:18 }}>{opt.icon}</div>
                     <div>
                       <p style={{ fontSize:14, fontWeight:700, color:C.navy, margin:0, fontFamily:F.body }}>{opt.title}</p>
@@ -655,9 +754,7 @@ const PaymentModal = ({ price, label, onConfirm, onClose }) => {
                 <div style={{ background:C.bgSoft, borderRadius:14, padding:16, marginBottom:14, textAlign:"center" }}>
                   <div style={{ width:130, height:130, margin:"0 auto 10px", background:C.navy, borderRadius:10, display:"flex", alignItems:"center", justifyContent:"center" }}>
                     <div style={{ display:"grid", gridTemplateColumns:"repeat(7,1fr)", gap:2, padding:8 }}>
-                      {Array.from({length:49}).map((_,i)=>(
-                        <div key={i} style={{ width:11, height:11, background:Math.random()>.45?"#FBF5EE":"transparent", borderRadius:1 }}/>
-                      ))}
+                      {Array.from({length:49}).map((_,i)=><div key={i} style={{ width:11, height:11, background:Math.random()>.45?"#FBF5EE":"transparent", borderRadius:1 }}/>)}
                     </div>
                   </div>
                   <p style={{ fontSize:11, color:C.textLight, fontFamily:F.body }}>QR Code simulado para demonstração</p>
@@ -669,7 +766,7 @@ const PaymentModal = ({ price, label, onConfirm, onClose }) => {
             {step===2&&method==="card"&&(
               <div>
                 <Fld label="Número"><Inp value={card.num} onChange={e=>setCard(p=>({...p,num:e.target.value.replace(/\D/g,"").slice(0,16).replace(/(\d{4})/g,"$1 ").trim()}))} placeholder="0000 0000 0000 0000" maxLength={19}/></Fld>
-                <Fld label="Nome no cartão"><Inp value={card.nome} onChange={e=>setCard(p=>({...p,nome:e.target.value.toUpperCase()}))} placeholder="JOÃO DA SILVA"/></Fld>
+                <Fld label="Nome"><Inp value={card.nome} onChange={e=>setCard(p=>({...p,nome:e.target.value.toUpperCase()}))} placeholder="JOÃO DA SILVA"/></Fld>
                 <div style={{ display:"flex", gap:10 }}>
                   <div style={{ flex:1 }}><Fld label="Validade"><Inp value={card.val} onChange={e=>setCard(p=>({...p,val:e.target.value.replace(/\D/g,"").slice(0,4).replace(/(\d{2})(\d)/,"$1/$2")}))} placeholder="MM/AA" maxLength={5}/></Fld></div>
                   <div style={{ flex:1 }}><Fld label="CVV"><Inp value={card.cvv} onChange={e=>setCard(p=>({...p,cvv:e.target.value.replace(/\D/g,"").slice(0,3)}))} placeholder="000" maxLength={3}/></Fld></div>
@@ -690,19 +787,18 @@ const PaymentModal = ({ price, label, onConfirm, onClose }) => {
 // PAGAMENTO
 // ─────────────────────────────────────────
 const PaymentTab = ({ activeRes, onPaid, cfg }) => {
-  const [secs, setSecs]         = useState(0);
-  const [running, setRunning]   = useState(false);
+  const [secs, setSecs]           = useState(0);
+  const [running, setRunning]     = useState(false);
   const [showModal, setShowModal] = useState(false);
-  const [paid, setPaid]         = useState(false);
-  const [fp, setFp]             = useState(null);
-  const [ft, setFt]             = useState(null);
-  const [load, setLoad]         = useState(false);
+  const [paid, setPaid]           = useState(false);
+  const [fp, setFp]               = useState(null);
+  const [ft, setFt]               = useState(null);
+  const [load, setLoad]           = useState(false);
   const iv = useRef(null);
 
   useEffect(()=>{
-    if (!activeRes) return;
-    if (activeRes.status==="no_show") { setSecs(0); return; }
-    const elapsed = Math.max(0, Math.floor((new Date()-new Date(activeRes.startTime))/1000));
+    if (!activeRes||activeRes.status==="no_show") return;
+    const elapsed = Math.max(0,Math.floor((new Date()-new Date(activeRes.startTime))/1000));
     setSecs(elapsed);
     if (new Date()>=new Date(activeRes.startTime)) setRunning(true);
   },[activeRes?._id]);
@@ -715,12 +811,11 @@ const PaymentTab = ({ activeRes, onPaid, cfg }) => {
 
   const usagePrice = ((secs/3600)*cfg.pricePerHour).toFixed(2);
   const totalPrice = (parseFloat(usagePrice)+cfg.reservationFee).toFixed(2);
-  const noShowTotal = cfg.noShowFine.toFixed(2);
 
   const handlePayConfirm = async () => {
     setLoad(true);
     try {
-      const { totalPrice: tp } = await api.payReservation(activeRes._id);
+      const { totalPrice:tp } = await api.payReservation(activeRes._id);
       clearInterval(iv.current); setRunning(false); setPaid(true); setShowModal(false);
       setFp(tp.toFixed(2)); setFt(fmtTime(secs));
       setTimeout(()=>{ setPaid(false);setFp(null);setFt(null);setSecs(0);onPaid(); },5000);
@@ -740,41 +835,22 @@ const PaymentTab = ({ activeRes, onPaid, cfg }) => {
 
   return (
     <div className="pay-layout" style={{ display:"flex", gap:24, flexWrap:"wrap", alignItems:"flex-start" }}>
-      {showModal&&(
-        <PaymentModal
-          price={activeRes?.status==="no_show" ? noShowTotal : totalPrice}
-          label={activeRes?.status==="no_show" ? "Pagar Multa No-Show" : "Confirmar Pagamento"}
-          onConfirm={handlePayConfirm}
-          onClose={()=>setShowModal(false)}
-        />
-      )}
+      {showModal&&<PaymentModal price={activeRes?.status==="no_show"?cfg.noShowFine.toFixed(2):totalPrice} label={activeRes?.status==="no_show"?"Pagar Multa No-Show":"Confirmar Pagamento"} onConfirm={handlePayConfirm} onClose={()=>setShowModal(false)}/>}
       <div className="pay-wrap" style={{ flex:"0 0 360px", display:"flex", flexDirection:"column", gap:14 }}>
-        {!activeRes ? (
+        {!activeRes?(
           <div style={{ display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", minHeight:240, textAlign:"center", gap:12, padding:20 }}>
-            <div style={{ width:58, height:58, borderRadius:"50%", background:C.bgDark, display:"flex", alignItems:"center", justifyContent:"center" }}>
-              <CarIcon color={C.borderMid} size={28}/>
-            </div>
+            <div style={{ width:58, height:58, borderRadius:"50%", background:C.bgDark, display:"flex", alignItems:"center", justifyContent:"center" }}><CarIcon color={C.borderMid} size={28}/></div>
             <p style={{ fontFamily:F.head, fontSize:17, fontWeight:600, color:C.textLight }}>Nenhuma reserva ativa</p>
             <p style={{ fontSize:13, color:C.textLight, maxWidth:250, lineHeight:1.7, fontFamily:F.body }}>Reserve uma vaga na aba <strong style={{ color:C.textMid }}>Reservas</strong>.</p>
           </div>
-        ) : activeRes.status==="no_show" ? (
+        ):activeRes.status==="no_show"?(
           <>
             <InfoBox color={C.red} bg={C.redBg} icon="⚠">
-              <strong>No-show detectado.</strong> Você não compareceu no horário reservado ({activeRes.startTimeStr}). Multa de <strong>{fmtMoney(cfg.noShowFine)}</strong> aplicada.
+              <strong>No-show detectado.</strong> Multa de <strong>{fmtMoney(cfg.noShowFine)}</strong> aplicada por não comparecimento.
             </InfoBox>
-            <div style={{ background:C.bgCard, borderRadius:14, padding:"14px 18px", border:`1px solid ${C.border}` }}>
-              <div style={{ display:"flex", justifyContent:"space-between", marginBottom:6 }}>
-                <span style={{ fontSize:13, color:C.textMid, fontFamily:F.body }}>Multa no-show</span>
-                <span style={{ fontSize:13, fontWeight:600, color:C.red, fontFamily:F.body }}>{fmtMoney(cfg.noShowFine)}</span>
-              </div>
-              <div style={{ display:"flex", justifyContent:"space-between", paddingTop:8, borderTop:`1px solid ${C.border}` }}>
-                <span style={{ fontSize:14, fontWeight:700, color:C.navy, fontFamily:F.body }}>Total</span>
-                <span style={{ fontSize:18, fontWeight:700, color:C.red, fontFamily:F.head }}>{fmtMoney(cfg.noShowFine)}</span>
-              </div>
-            </div>
             <Btn v="danger" full onClick={()=>setShowModal(true)} style={{ padding:"13px" }}>Pagar Multa — {fmtMoney(cfg.noShowFine)}</Btn>
           </>
-        ) : (
+        ):(
           <>
             <div style={{ display:"flex", alignItems:"center", gap:14, background:C.purpleBg, borderRadius:16, padding:"13px 18px", border:`1.5px solid ${C.purple}` }}>
               <CarIcon color={C.purple} size={32}/>
@@ -784,18 +860,11 @@ const PaymentTab = ({ activeRes, onPaid, cfg }) => {
                 <p style={{ fontSize:12, color:C.purple, margin:0, fontFamily:F.body }}>{activeRes.startTimeStr}{activeRes.placa&&` • ${activeRes.placa}`}</p>
               </div>
             </div>
-
             <div style={{ background:C.navy, borderRadius:18, padding:"18px 22px", textAlign:"center" }}>
-              <p style={{ color:"#A89880", fontSize:10, fontWeight:600, letterSpacing:2, textTransform:"uppercase", marginBottom:8, fontFamily:F.body }}>
-                {running?"Tempo Decorrido":"Aguardando Horário"}
-              </p>
-              <p className="timer-num" style={{ fontFamily:F.head, fontSize:44, fontWeight:700, color:"#FBF5EE", letterSpacing:2, lineHeight:1, margin:0 }}>
-                {fmtTime(secs)}
-              </p>
+              <p style={{ color:"#A89880", fontSize:10, fontWeight:600, letterSpacing:2, textTransform:"uppercase", marginBottom:8, fontFamily:F.body }}>{running?"Tempo Decorrido":"Aguardando Horário"}</p>
+              <p className="timer-num" style={{ fontFamily:F.head, fontSize:44, fontWeight:700, color:"#FBF5EE", letterSpacing:2, lineHeight:1, margin:0 }}>{fmtTime(secs)}</p>
               {!running&&<p style={{ color:"#A89880", fontSize:11, marginTop:8, fontFamily:F.body }}>O cronômetro inicia no horário reservado.</p>}
             </div>
-
-            {/* Resumo de valores */}
             {running&&(
               <div style={{ background:C.bgCard, borderRadius:14, padding:"13px 16px", border:`1px solid ${C.border}` }}>
                 <div className="fee-row" style={{ display:"flex", justifyContent:"space-between", marginBottom:6 }}>
@@ -812,7 +881,6 @@ const PaymentTab = ({ activeRes, onPaid, cfg }) => {
                 </div>
               </div>
             )}
-
             {running&&<Btn v="amber" onClick={()=>setShowModal(true)} full style={{ padding:"13px" }}>Pagar Reserva — {fmtMoney(totalPrice)}</Btn>}
           </>
         )}
@@ -825,9 +893,9 @@ const PaymentTab = ({ activeRes, onPaid, cfg }) => {
 // MINHA CONTA
 // ─────────────────────────────────────────
 const ProfileTab = ({ user, onLogout }) => {
-  const [history, setHistory]   = useState([]);
+  const [history, setHistory]     = useState([]);
   const [activeRes, setActiveRes] = useState(null);
-  const [load, setLoad]         = useState(true);
+  const [load, setLoad]           = useState(true);
   const cpfFmt = user.cpf?user.cpf.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/,"$1.$2.$3-$4"):"—";
 
   useEffect(()=>{
@@ -838,10 +906,9 @@ const ProfileTab = ({ user, onLogout }) => {
 
   const totalGasto = history.reduce((a,r)=>a+(r.totalPrice||0),0);
   const totalSecs  = history.reduce((a,r)=>a+(r.totalSeconds||0),0);
-
-  const statusBdg = (s) => {
+  const statusBdg  = s => {
     if (s==="paid")      return <Bdg color={C.greenDark} bg={C.greenBg}>Pago</Bdg>;
-    if (s==="cancelled") return <Bdg color={C.red}       bg={C.redBg}>Cancelado</Bdg>;
+    if (s==="cancelled") return <Bdg color={C.textMid}   bg={C.bgDark}>Cancelado</Bdg>;
     if (s==="no_show")   return <Bdg color={C.red}       bg={C.redBg}>No-show</Bdg>;
     return null;
   };
@@ -864,7 +931,7 @@ const ProfileTab = ({ user, onLogout }) => {
           <div style={{ display:"flex", alignItems:"center", gap:8 }}>
             <div style={{ width:8, height:8, borderRadius:"50%", background:activeRes.status==="no_show"?C.red:C.purple, animation:"pulse 2s infinite", flexShrink:0 }}/>
             <p style={{ fontSize:13, fontWeight:600, color:activeRes.status==="no_show"?C.redDark:C.purpleDark, margin:0, fontFamily:F.body }}>
-              {activeRes.status==="no_show" ? "⚠ Multa pendente por no-show" : `Reserva ativa — Vaga ${activeRes.spotNumber} às ${activeRes.startTimeStr}`}
+              {activeRes.status==="no_show"?"⚠ Multa pendente por no-show":`Reserva ativa — Vaga ${activeRes.spotNumber} às ${activeRes.startTimeStr}`}
             </p>
           </div>
         </div>
@@ -955,17 +1022,19 @@ const UserModal = ({ user, onClose, onToggle }) => {
 };
 
 // ─────────────────────────────────────────
-// ADMIN
+// ADMIN — com modo demo e status do sistema
 // ─────────────────────────────────────────
-const AdminTab = ({ spots }) => {
-  const [view, setView]     = useState("dashboard");
-  const [dash, setDash]     = useState(null);
-  const [logs, setLogs]     = useState([]);
-  const [res, setRes]       = useState([]);
-  const [users, setUsers]   = useState([]);
-  const [load, setLoad]     = useState(false);
-  const [selU, setSelU]     = useState(null);
-  const [search, setSearch] = useState("");
+const AdminTab = ({ spots, onSpotsUpdate }) => {
+  const [view, setView]       = useState("dashboard");
+  const [dash, setDash]       = useState(null);
+  const [logs, setLogs]       = useState([]);
+  const [res, setRes]         = useState([]);
+  const [users, setUsers]     = useState([]);
+  const [load, setLoad]       = useState(false);
+  const [selU, setSelU]       = useState(null);
+  const [search, setSearch]   = useState("");
+  const [demoLoad, setDemoLoad] = useState(false);
+  const [demoMsg, setDemoMsg]  = useState("");
 
   const loadView = async v => {
     setLoad(true);
@@ -988,36 +1057,62 @@ const AdminTab = ({ spots }) => {
     await api.adminCancelRes(rid); loadView("reservations");
   };
 
+  // MODO DEMO — simula carro entrando/saindo
+  const runDemo = async () => {
+    setDemoLoad(true); setDemoMsg("");
+    const available = spots.filter(s=>s.status==="available");
+    if (!available.length) { setDemoMsg("Sem vagas livres para demonstrar."); setDemoLoad(false); return; }
+    const spot = available[Math.floor(Math.random()*available.length)];
+    setDemoMsg(`🚗 Carro entrando na vaga ${spot.row}${spot.spotNumber}...`);
+    await api.sensorUpdate(spot.spotNumber, true);
+    onSpotsUpdate();
+    setTimeout(async()=>{
+      setDemoMsg(`✅ Carro saindo da vaga ${spot.row}${spot.spotNumber}...`);
+      await api.sensorUpdate(spot.spotNumber, false);
+      onSpotsUpdate();
+      setTimeout(()=>{ setDemoMsg("Demo concluída!"); setDemoLoad(false); },1500);
+    }, 3000);
+  };
+
+  const noShows = res.filter(r=>r.status==="no_show").length;
   const row = { background:C.bgCard, borderRadius:14, padding:"12px 16px", display:"flex", justifyContent:"space-between", alignItems:"center", flexWrap:"wrap", gap:7, boxShadow:C.sh, border:`1px solid ${C.border}` };
   const fU = users.filter(u=>!search||(u.email+u.nomeCompleto+u.username).toLowerCase().includes(search.toLowerCase()));
   const fR = res.filter(r=>!search||(r.user?.email+r.user?.nomeCompleto+r.spotNumber).toLowerCase().includes(search.toLowerCase()));
-
-  const noShows = res.filter(r=>r.status==="no_show").length;
 
   return (
     <div>
       <UserModal user={selU} onClose={()=>setSelU(null)} onToggle={toggle}/>
       <div style={{ display:"flex", gap:6, marginBottom:18, flexWrap:"wrap" }}>
-        {[["dashboard","Dashboard"],["reservations","Reservas"],["users","Usuários"],["logs","Logs"]].map(([v,l])=>(
+        {[["dashboard","Dashboard"],["reservations","Reservas"],["users","Usuários"],["logs","Logs"],["system","Sistema"]].map(([v,l])=>(
           <button key={v} onClick={()=>{setView(v);setSearch("");}} style={{ padding:"8px 20px", borderRadius:20, background:view===v?C.navy:C.border, color:view===v?"#FBF5EE":C.textMid, border:"none", fontSize:13, fontWeight:600, cursor:"pointer", fontFamily:F.body, transition:"all .15s" }}>
             {l}{v==="reservations"&&noShows>0&&<span style={{ marginLeft:6, background:C.red, color:"#fff", borderRadius:20, padding:"1px 7px", fontSize:10 }}>{noShows}</span>}
           </button>
         ))}
       </div>
+
       {(view==="users"||view==="reservations")&&(
         <div style={{ marginBottom:14 }}>
           <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Buscar..." style={{ width:"100%", maxWidth:300, padding:"9px 16px", borderRadius:20, border:`1.5px solid ${C.border}`, fontSize:13, fontFamily:F.body, background:C.bgSoft, color:C.text, outline:"none" }}/>
         </div>
       )}
+
       {load&&<div style={{ display:"flex", justifyContent:"center", padding:"30px 0" }}><Spin/></div>}
 
+      {/* DASHBOARD */}
       {!load&&view==="dashboard"&&dash&&(
         <div>
-          {noShows>0&&(
-            <InfoBox color={C.redDark} bg={C.redBg} icon="⚠" style={{ marginBottom:16 }}>
-              <strong>{noShows} no-show(s) pendente(s)</strong> — vagas foram liberadas automaticamente. Clientes precisam pagar a multa de {fmtMoney(CFG.noShowFine)} para usar novamente.
-            </InfoBox>
-          )}
+          {noShows>0&&<InfoBox color={C.redDark} bg={C.redBg} icon="⚠" style={{ marginBottom:16 }}><strong>{noShows} no-show(s) pendente(s)</strong> — clientes precisam pagar a multa.</InfoBox>}
+
+          {/* MODO DEMO */}
+          <div style={{ background:C.amberBg, borderRadius:16, padding:"16px 20px", marginBottom:18, border:`1px solid ${C.amber}30`, display:"flex", alignItems:"center", justifyContent:"space-between", flexWrap:"wrap", gap:12 }}>
+            <div>
+              <p style={{ fontFamily:F.head, fontSize:14, fontWeight:700, color:C.amberDark, margin:0 }}>🎓 Modo Demonstração</p>
+              <p style={{ fontSize:12, color:C.amber, margin:0, fontFamily:F.body }}>Simula entrada e saída de veículo em uma vaga aleatória</p>
+              {demoMsg&&<p style={{ fontSize:12, color:C.amberDark, margin:"6px 0 0", fontWeight:600, fontFamily:F.body }}>{demoMsg}</p>}
+            </div>
+            <Btn v="amber" onClick={runDemo} disabled={demoLoad} sm>{demoLoad?<Spin color="#fff"/>:"▶ Iniciar Demo"}</Btn>
+          </div>
+
           <div className="dash-grid" style={{ display:"grid", gridTemplateColumns:"repeat(4,1fr)", gap:10, marginBottom:18 }}>
             {[
               { label:"Usuários",     value:dash.totalUsers,            color:C.navy,   bg:C.navyLight },
@@ -1035,10 +1130,12 @@ const AdminTab = ({ spots }) => {
               </div>
             ))}
           </div>
+
           <Card style={{ marginBottom:14, padding:18 }}>
             <h3 style={{ fontFamily:F.head, fontSize:14, fontWeight:700, color:C.navy, marginBottom:12 }}>Mapa em Tempo Real</h3>
             <ParkingGrid spots={spots} selId={null} onSpotClick={()=>{}} clickable={false}/>
           </Card>
+
           {dash.revenueWeek?.length>0&&(
             <Card style={{ padding:18 }}>
               <h3 style={{ fontFamily:F.head, fontSize:14, fontWeight:700, color:C.navy, marginBottom:12 }}>Receita — Últimos 7 dias</h3>
@@ -1056,15 +1153,65 @@ const AdminTab = ({ spots }) => {
         </div>
       )}
 
+      {/* STATUS DO SISTEMA */}
+      {!load&&view==="system"&&(
+        <div style={{ display:"flex", flexDirection:"column", gap:14 }}>
+          <Card>
+            <h3 style={{ fontFamily:F.head, fontSize:15, fontWeight:700, color:C.navy, marginBottom:16 }}>Status do Sistema</h3>
+            {[
+              { label:"Backend API",       value:"Online", color:C.green, bg:C.greenBg, icon:"✅" },
+              { label:"Banco de Dados",    value:"MongoDB Atlas — conectado", color:C.green, bg:C.greenBg, icon:"✅" },
+              { label:"Frontend",          value:"Vercel — em operação", color:C.green, bg:C.greenBg, icon:"✅" },
+              { label:"Sensores ESP32",    value:`${spots.length} vagas monitoradas`, color:C.purple, bg:C.purpleBg, icon:"📡" },
+              { label:"Atualização",       value:"A cada 5 segundos", color:C.amber, bg:C.amberBg, icon:"🔄" },
+            ].map(item=>(
+              <div key={item.label} style={{ display:"flex", alignItems:"center", justifyContent:"space-between", padding:"10px 0", borderBottom:`1px solid ${C.border}` }}>
+                <div style={{ display:"flex", alignItems:"center", gap:10 }}>
+                  <span style={{ fontSize:16 }}>{item.icon}</span>
+                  <span style={{ fontSize:13, color:C.textMid, fontFamily:F.body }}>{item.label}</span>
+                </div>
+                <span style={{ fontSize:12, fontWeight:600, color:item.color, background:item.bg, padding:"3px 10px", borderRadius:20, fontFamily:F.body }}>{item.value}</span>
+              </div>
+            ))}
+          </Card>
+
+          <Card>
+            <h3 style={{ fontFamily:F.head, fontSize:15, fontWeight:700, color:C.navy, marginBottom:16 }}>Estado das Vagas</h3>
+            {spots.map(s=>{
+              const m = SM[s.status]||SM.available;
+              return (
+                <div key={s._id} style={{ display:"flex", alignItems:"center", justifyContent:"space-between", padding:"8px 0", borderBottom:`1px solid ${C.border}` }}>
+                  <div style={{ display:"flex", alignItems:"center", gap:10 }}>
+                    <div style={{ width:8, height:8, borderRadius:2, background:m.bd, flexShrink:0 }}/>
+                    <span style={{ fontSize:13, color:C.navy, fontFamily:F.body, fontWeight:600 }}>Vaga {s.row}{s.spotNumber}</span>
+                  </div>
+                  <div style={{ display:"flex", alignItems:"center", gap:8 }}>
+                    <span style={{ fontSize:11, color:C.textLight, fontFamily:F.body }}>Sensor: {s.sensorOccupied?"ocupado":"livre"}</span>
+                    <Bdg color={m.tx} bg={m.bg}>{m.lb}</Bdg>
+                  </div>
+                </div>
+              );
+            })}
+          </Card>
+
+          {/* MODO DEMO no sistema */}
+          <Card>
+            <h3 style={{ fontFamily:F.head, fontSize:15, fontWeight:700, color:C.navy, marginBottom:8 }}>🎓 Demonstração ao Vivo</h3>
+            <p style={{ fontSize:13, color:C.textLight, fontFamily:F.body, marginBottom:14 }}>Simula um carro entrando e saindo de uma vaga em tempo real, sem precisar do ESP32 conectado.</p>
+            {demoMsg&&<InfoBox color={C.amberDark} bg={C.amberBg} icon="🚗" style={{ marginBottom:12 }}>{demoMsg}</InfoBox>}
+            <Btn v="amber" onClick={runDemo} disabled={demoLoad}>{demoLoad?<Spin color="#fff"/>:"▶ Iniciar Demonstração"}</Btn>
+          </Card>
+        </div>
+      )}
+
+      {/* RESERVAS */}
       {!load&&view==="reservations"&&(
         <div style={{ display:"flex", flexDirection:"column", gap:7 }}>
           {fR.length===0&&<p style={{ color:C.textLight, fontSize:13, fontFamily:F.body }}>Nenhuma reserva.</p>}
           {fR.map(r=>(
             <div key={r._id} style={row}>
               <div style={{ display:"flex", alignItems:"center", gap:8, flexWrap:"wrap" }}>
-                <button onClick={()=>setSelU(r.user)} style={{ background:"none", border:"none", cursor:"pointer", fontSize:13, fontWeight:600, color:C.navy, fontFamily:F.body, textDecoration:"underline", textUnderlineOffset:2 }}>
-                  {r.user?.nomeCompleto||r.user?.email}
-                </button>
+                <button onClick={()=>setSelU(r.user)} style={{ background:"none", border:"none", cursor:"pointer", fontSize:13, fontWeight:600, color:C.navy, fontFamily:F.body, textDecoration:"underline", textUnderlineOffset:2 }}>{r.user?.nomeCompleto||r.user?.email}</button>
                 <Bdg color={C.purple} bg={C.purpleBg}>Vaga {r.spotNumber}</Bdg>
                 <span style={{ fontSize:12, color:C.textMid, fontFamily:F.body }}>às {r.startTimeStr}</span>
                 {r.placa&&<Bdg color={C.navyMid} bg={C.navyLight}>{r.placa}</Bdg>}
@@ -1082,6 +1229,7 @@ const AdminTab = ({ spots }) => {
         </div>
       )}
 
+      {/* USUÁRIOS */}
       {!load&&view==="users"&&(
         <div style={{ display:"flex", flexDirection:"column", gap:7 }}>
           {fU.map(u=>(
@@ -1105,6 +1253,7 @@ const AdminTab = ({ spots }) => {
         </div>
       )}
 
+      {/* LOGS */}
       {!load&&view==="logs"&&(
         <div style={{ display:"flex", flexDirection:"column", gap:6 }}>
           {logs.length===0&&<p style={{ color:C.textLight, fontSize:13, fontFamily:F.body }}>Nenhum log.</p>}
@@ -1153,18 +1302,39 @@ const MobileNav = ({ tab, setTab, isAdmin }) => {
 // ROOT
 // ─────────────────────────────────────────
 export default function App() {
+  const [screen, setScreen]       = useState("landing"); // landing | login | app
   const [user, setUser]           = useState(null);
   const [spots, setSpots]         = useState([]);
   const [activeRes, setActiveRes] = useState(null);
   const [tab, setTab]             = useState("overview");
   const [booting, setBoot]        = useState(true);
   const [cfg, setCfg]             = useState(CFG);
+  const [online, setOnline]       = useState(true);
+  const [notifications, setNotifications] = useState([]);
+  const prevSpotsRef = useRef([]);
+
+  const addNotif = (msg, type) => {
+    const id = Date.now();
+    setNotifications(p=>[...p, { id, msg, type }]);
+    setTimeout(()=>setNotifications(p=>p.filter(n=>n.id!==id)), 4000);
+  };
 
   useEffect(()=>{
     const t = localStorage.getItem("omv_token");
-    if (!t){ setBoot(false); return; }
-    api.me().then(({user})=>setUser(user)).catch(()=>localStorage.removeItem("omv_token")).finally(()=>setBoot(false));
     api.resConfig().then(c=>{ CFG=c; setCfg(c); }).catch(()=>{});
+    if (!t){ setBoot(false); return; }
+    api.me().then(({user})=>{ setUser(user); setScreen("app"); }).catch(()=>localStorage.removeItem("omv_token")).finally(()=>setBoot(false));
+  },[]);
+
+  // Verifica conexão com o backend a cada 30s
+  useEffect(()=>{
+    const check = async()=>{
+      const h = await api.health();
+      setOnline(h.status==="ok");
+    };
+    check();
+    const iv = setInterval(check, 30000);
+    return ()=>clearInterval(iv);
   },[]);
 
   useEffect(()=>{
@@ -1174,9 +1344,28 @@ export default function App() {
     return ()=>clearInterval(iv);
   },[user]);
 
-  const loadSpots = async()=>{ try{ setSpots(await api.spots()); }catch{} };
+  const loadSpots = async()=>{
+    try {
+      const newSpots = await api.spots();
+      // Detecta mudanças e dispara notificações
+      if (prevSpotsRef.current.length) {
+        newSpots.forEach(ns=>{
+          const old = prevSpotsRef.current.find(s=>s._id===ns._id);
+          if (old && old.status!==ns.status) {
+            if (ns.status==="occupied"||ns.status==="reserved")
+              addNotif(`Vaga ${ns.row}${ns.spotNumber} ficou ocupada`, "occupied");
+            else if (ns.status==="available"||ns.status==="preferential")
+              addNotif(`Vaga ${ns.row}${ns.spotNumber} ficou disponível`, "available");
+          }
+        });
+      }
+      prevSpotsRef.current = newSpots;
+      setSpots(newSpots);
+    } catch {}
+  };
+
   const loadRes   = async()=>{ try{ setActiveRes(await api.myReservation()); }catch{} };
-  const logout    = ()=>{ localStorage.removeItem("omv_token"); setUser(null); setSpots([]); setActiveRes(null); setTab("overview"); };
+  const logout    = ()=>{ localStorage.removeItem("omv_token"); setUser(null); setSpots([]); setActiveRes(null); setTab("overview"); setScreen("landing"); };
 
   if (booting) return (
     <div style={{ minHeight:"100vh", width:"100%", background:C.bg, display:"flex", alignItems:"center", justifyContent:"center" }}>
@@ -1187,7 +1376,8 @@ export default function App() {
     </div>
   );
 
-  if (!user) return <LoginScreen onLogin={u=>setUser(u)}/>;
+  if (screen==="landing") return <LandingPage onEnter={()=>setScreen("login")}/>;
+  if (screen==="login")   return <LoginScreen onLogin={u=>{ setUser(u); setScreen("app"); }} onBack={()=>setScreen("landing")}/>;
 
   const desktopTabs = [
     { id:"overview", label:"Visão Geral" },
@@ -1202,6 +1392,7 @@ export default function App() {
   return (
     <div style={{ width:"100%", minHeight:"100vh", background:C.bg, fontFamily:F.body }}>
       <style>{GF+CSS}</style>
+      <NotificationCenter notifications={notifications}/>
 
       <header className="desktop-header" style={{ background:C.bgCard, borderBottom:`1px solid ${C.border}`, position:"sticky", top:0, zIndex:100, width:"100%" }}>
         <div style={{ width:"100%", padding:"0 48px", height:62, display:"flex", alignItems:"center", justifyContent:"space-between", gap:16 }}>
@@ -1211,7 +1402,9 @@ export default function App() {
               <button key={t.id} onClick={()=>setTab(t.id)} style={{ padding:"8px 18px", borderRadius:20, border:"none", background:tab===t.id?C.navy:"transparent", color:tab===t.id?"#FBF5EE":C.textMid, fontSize:13, fontWeight:600, cursor:"pointer", fontFamily:F.body, transition:"all .15s", whiteSpace:"nowrap" }}>{t.label}</button>
             ))}
           </nav>
-          <div style={{ display:"flex", alignItems:"center", gap:12, flexShrink:0 }}>
+          <div style={{ display:"flex", alignItems:"center", gap:14, flexShrink:0 }}>
+            <ConnectionDot online={online}/>
+            <div style={{ width:1, height:20, background:C.border }}/>
             <div style={{ textAlign:"right" }}>
               <p style={{ fontSize:12, fontWeight:600, color:C.navy, margin:0, fontFamily:F.body }}>{user.nomeCompleto||user.email}</p>
               <p style={{ fontSize:10, color:C.textLight, margin:0, fontFamily:F.body }}>{user.isAdmin?"Administrador":user.email}</p>
@@ -1222,14 +1415,12 @@ export default function App() {
       </header>
 
       <main className="main-content" style={{ width:"100%", padding:"30px 48px" }}>
-        <h1 className="page-title" style={{ fontFamily:F.head, fontSize:24, fontWeight:700, color:C.navy, marginBottom:20 }}>
-          {titles[tab]}
-        </h1>
+        <h1 className="page-title" style={{ fontFamily:F.head, fontSize:24, fontWeight:700, color:C.navy, marginBottom:20 }}>{titles[tab]}</h1>
         {tab==="overview" && <OverviewTab spots={spots}/>}
         {tab==="reserve"  && <ReserveTab spots={spots} activeRes={activeRes} onReserved={()=>{loadSpots();loadRes();}} setTab={setTab} cfg={cfg}/>}
         {tab==="payment"  && <PaymentTab activeRes={activeRes} onPaid={()=>{loadSpots();setActiveRes(null);}} cfg={cfg}/>}
         {tab==="profile"  && <ProfileTab user={user} onLogout={logout}/>}
-        {tab==="admin"&&user.isAdmin&&<AdminTab spots={spots}/>}
+        {tab==="admin"&&user.isAdmin&&<AdminTab spots={spots} onSpotsUpdate={loadSpots}/>}
       </main>
 
       <MobileNav tab={tab} setTab={setTab} isAdmin={user.isAdmin}/>
