@@ -366,7 +366,7 @@ const LandingPage = ({ onEnter }) => (
         <span style={{ fontSize:12, color:C.greenDark, fontWeight:600 }}>Sistema em operação</span>
       </div>
       <h1 className="hero-title" style={{ fontFamily:F.head, fontSize:48, fontWeight:700, color:C.navy, lineHeight:1.15, marginBottom:20 }}>
-        Estacionamento inteligente<br/>do jeito que deveria ser
+        Projeto TCC<br/>OMV - Otimização e Monitoramento de Vagas
       </h1>
       <p className="hero-sub" style={{ fontSize:17, color:C.textLight, maxWidth:560, margin:"0 auto 36px", lineHeight:1.7 }}>
         O <strong style={{ color:C.navy }}>OMV</strong> monitora suas vagas em tempo real, permite reservas antecipadas e integra sensores físicos à plataforma digital.
