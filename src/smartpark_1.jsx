@@ -1,10 +1,12 @@
 import { useState, useEffect, useRef } from "react";
 
+
 // ─────────────────────────────────────────
 // API
 // ─────────────────────────────────────────
 const BASE = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
 const getToken = () => localStorage.getItem("omv_token");
+resetSpots: (occupied) => request("/spots/reset", { method:"POST", body:JSON.stringify({ occupied }) }),
 
 async function request(path, options = {}) {
   const token = getToken();
