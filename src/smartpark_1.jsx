@@ -1279,49 +1279,87 @@ const AdminTab = ({ spots, onSpotsUpdate }) => {
       {/* SISTEMA */}
       {!load&&view==="system"&&(
         <div style={{ display:"flex", flexDirection:"column", gap:13 }}>
-          <Card>
-            <h3 style={{ fontFamily:F.head, fontSize:14, fontWeight:700, color:C.navy, marginBottom:14 }}>Status do Sistema</h3>
-            {[
-              { label:"Backend API",     value:"Online", color:C.green, bg:C.greenBg, icon:"✅" },
-              { label:"Banco de Dados",  value:"MongoDB Atlas — conectado", color:C.green, bg:C.greenBg, icon:"✅" },
-              { label:"Frontend",        value:"Vercel — em operação", color:C.green, bg:C.greenBg, icon:"✅" },
-              { label:"Sensores ESP32",  value:`${spots.length} vagas monitoradas`, color:C.purple, bg:C.purpleBg, icon:"📡" },
-              { label:"Atualização",     value:"A cada 5 segundos", color:C.amber, bg:C.amberBg, icon:"🔄" },
-            ].map(item=>(
-              <div key={item.label} style={{ display:"flex", alignItems:"center", justifyContent:"space-between", padding:"9px 0", borderBottom:`1px solid ${C.border}`, flexWrap:"wrap", gap:6 }}>
-                <div style={{ display:"flex", alignItems:"center", gap:9 }}>
-                  <span style={{ fontSize:14 }}>{item.icon}</span>
-                  <span style={{ fontSize:13, color:C.textMid, fontFamily:F.body }}>{item.label}</span>
-                </div>
-                <span style={{ fontSize:11, fontWeight:600, color:item.color, background:item.bg, padding:"3px 10px", borderRadius:20, fontFamily:F.body }}>{item.value}</span>
-              </div>
-            ))}
-          </Card>
-          <Card>
-            <h3 style={{ fontFamily:F.head, fontSize:14, fontWeight:700, color:C.navy, marginBottom:14 }}>Estado das Vagas</h3>
-            {spots.map(s=>{
-              const m = SM[s.status]||SM.available;
-              return (
-                <div key={s._id} style={{ display:"flex", alignItems:"center", justifyContent:"space-between", padding:"7px 0", borderBottom:`1px solid ${C.border}`, flexWrap:"wrap", gap:6 }}>
-                  <div style={{ display:"flex", alignItems:"center", gap:9 }}>
-                    <div style={{ width:7, height:7, borderRadius:2, background:m.bd, flexShrink:0 }}/>
-                    <span style={{ fontSize:13, color:C.navy, fontFamily:F.body, fontWeight:600 }}>Vaga {s.row}{s.spotNumber}</span>
-                  </div>
-                  <div style={{ display:"flex", alignItems:"center", gap:7 }}>
-                    <span style={{ fontSize:10, color:C.textLight, fontFamily:F.body }}>Sensor: {s.sensorOccupied?"ocupado":"livre"}</span>
-                    <Bdg color={m.tx} bg={m.bg}>{m.lb}</Bdg>
-                  </div>
-                </div>
-              );
-            })}
-          </Card>
-          <Card>
-            <h3 style={{ fontFamily:F.head, fontSize:14, fontWeight:700, color:C.navy, marginBottom:7 }}>🎓 Demonstração ao Vivo</h3>
-            <p style={{ fontSize:13, color:C.textLight, fontFamily:F.body, marginBottom:13 }}>Simula um carro entrando e saindo de uma vaga em tempo real, sem precisar do ESP32 conectado.</p>
-            {demoMsg&&<InfoBox color={C.amberDark} bg={C.amberBg} icon="🚗" style={{ marginBottom:11 }}>{demoMsg}</InfoBox>}
-            <Btn v="amber" onClick={runDemo} disabled={demoLoad}>{demoLoad?<Spin color="#fff"/>:"▶ Iniciar Demonstração"}</Btn>
-          </Card>
+
+    {/* CONTROLE GERAL DE VAGAS */}
+    <Card>
+      <h3 style={{ fontFamily:F.head, fontSize:14, fontWeight:700, color:C.navy, marginBottom:8 }}>
+        Controle Geral de Vagas
+      </h3>
+      <p style={{ fontSize:13, color:C.textLight, fontFamily:F.body, marginBottom:16, lineHeight:1.6 }}>
+        Libera ou ocupa todas as vagas de uma vez. Útil para demonstrações e testes.
+      </p>
+      <div style={{ display:"flex", gap:10, flexWrap:"wrap" }}>
+        <Btn v="success" onClick={async()=>{
+          if (!window.confirm("Liberar todas as 12 vagas?")) return;
+          try {
+            await api.resetSpots(false);
+            onSpotsUpdate();
+            alert("✅ Todas as vagas foram liberadas!");
+          } catch(e){ alert("Erro: "+e.message); }
+        }}>
+          ✓ Liberar todas as vagas
+        </Btn>
+        <Btn v="danger" onClick={async()=>{
+          if (!window.confirm("Ocupar todas as 12 vagas?")) return;
+          try {
+            await api.resetSpots(true);
+            onSpotsUpdate();
+            alert("🚗 Todas as vagas foram ocupadas!");
+          } catch(e){ alert("Erro: "+e.message); }
+        }}>
+          ✕ Ocupar todas as vagas
+        </Btn>
+      </div>
+    </Card>
+
+    {/* MODO DEMO */}
+    <Card>
+      <h3 style={{ fontFamily:F.head, fontSize:14, fontWeight:700, color:C.navy, marginBottom:7 }}>🎓 Demonstração ao Vivo</h3>
+      <p style={{ fontSize:13, color:C.textLight, fontFamily:F.body, marginBottom:13 }}>Simula um carro entrando e saindo de uma vaga em tempo real, sem precisar do ESP32 conectado.</p>
+      {demoMsg&&<InfoBox color={C.amberDark} bg={C.amberBg} icon="🚗" style={{ marginBottom:11 }}>{demoMsg}</InfoBox>}
+      <Btn v="amber" onClick={runDemo} disabled={demoLoad}>{demoLoad?<Spin color="#fff"/>:"▶ Iniciar Demonstração"}</Btn>
+    </Card>
+
+    {/* STATUS */}
+    <Card>
+      <h3 style={{ fontFamily:F.head, fontSize:14, fontWeight:700, color:C.navy, marginBottom:14 }}>Status do Sistema</h3>
+      {[
+        { label:"Backend API",     value:"Online", color:C.green, bg:C.greenBg, icon:"✅" },
+        { label:"Banco de Dados",  value:"MongoDB Atlas — conectado", color:C.green, bg:C.greenBg, icon:"✅" },
+        { label:"Frontend",        value:"Vercel — em operação", color:C.green, bg:C.greenBg, icon:"✅" },
+        { label:"Sensores ESP32",  value:`${spots.length} vagas monitoradas`, color:C.purple, bg:C.purpleBg, icon:"📡" },
+        { label:"Atualização",     value:"A cada 5 segundos", color:C.amber, bg:C.amberBg, icon:"🔄" },
+      ].map(item=>(
+        <div key={item.label} style={{ display:"flex", alignItems:"center", justifyContent:"space-between", padding:"9px 0", borderBottom:`1px solid ${C.border}`, flexWrap:"wrap", gap:6 }}>
+          <div style={{ display:"flex", alignItems:"center", gap:9 }}>
+            <span style={{ fontSize:14 }}>{item.icon}</span>
+            <span style={{ fontSize:13, color:C.textMid, fontFamily:F.body }}>{item.label}</span>
+          </div>
+          <span style={{ fontSize:11, fontWeight:600, color:item.color, background:item.bg, padding:"3px 10px", borderRadius:20, fontFamily:F.body }}>{item.value}</span>
         </div>
+      ))}
+    </Card>
+
+    {/* ESTADO DAS VAGAS */}
+    <Card>
+      <h3 style={{ fontFamily:F.head, fontSize:14, fontWeight:700, color:C.navy, marginBottom:14 }}>Estado das Vagas</h3>
+      {spots.map(s=>{
+        const m = SM[s.status]||SM.available;
+        return (
+          <div key={s._id} style={{ display:"flex", alignItems:"center", justifyContent:"space-between", padding:"7px 0", borderBottom:`1px solid ${C.border}`, flexWrap:"wrap", gap:6 }}>
+            <div style={{ display:"flex", alignItems:"center", gap:9 }}>
+              <div style={{ width:7, height:7, borderRadius:2, background:m.bd, flexShrink:0 }}/>
+              <span style={{ fontSize:13, color:C.navy, fontFamily:F.body, fontWeight:600 }}>Vaga {s.row}{s.spotNumber}</span>
+            </div>
+            <div style={{ display:"flex", alignItems:"center", gap:7 }}>
+              <span style={{ fontSize:10, color:C.textLight, fontFamily:F.body }}>Sensor: {s.sensorOccupied?"ocupado":"livre"}</span>
+              <Bdg color={m.tx} bg={m.bg}>{m.lb}</Bdg>
+            </div>
+          </div>
+        );
+      })}
+    </Card>
+  </div>
       )}
 
       {/* RESERVAS */}
