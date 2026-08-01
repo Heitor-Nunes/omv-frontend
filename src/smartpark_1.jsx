@@ -6,7 +6,6 @@ import { useState, useEffect, useRef } from "react";
 // ─────────────────────────────────────────
 const BASE = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
 const getToken = () => localStorage.getItem("omv_token");
-resetSpots: (occupied) => request("/spots/reset", { method:"POST", body:JSON.stringify({ occupied }) }),
 
 async function request(path, options = {}) {
   const token = getToken();
@@ -41,6 +40,7 @@ const api = {
   toggleUser:        (id)               => request(`/admin/users/${id}/toggle`,        { method:"PATCH" }),
   adminCancelRes:    (id)               => request(`/admin/reservations/${id}/cancel`,  { method:"POST" }),
   sensorUpdate:      (spotNumber, occ)  => request("/spots/sensor", { method:"POST", body:JSON.stringify({ spotNumber, occupied:occ }) }),
+  resetSpots: (occupied) => request("/spots/reset", { method:"POST", body:JSON.stringify({ occupied }) }),
   health:            ()                 => fetch(`${BASE}/health`).then(r=>r.json()).catch(()=>({ status:"error" })),
 };
 
