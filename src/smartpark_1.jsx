@@ -403,9 +403,9 @@ const ParkMap = ({ spots, selId, onSpotClick, clickable = false }) => {
         ))}
       </div>
       <Road label="Entrada"/>
-      <Block l="A" r="C" ll="← Av. A" rl="Av. C →"/>
-      <Road label="Rua Separadora"/>
       <Block l="B" r="D" ll="← Av. B" rl="Av. D →"/>
+      <Road label="Rua Separadora"/>
+      <Block l="A" r="C" ll="← Av. A" rl="Av. C →"/>
       <Road label="Saída"/>
     </div>
   );
@@ -672,7 +672,7 @@ const ReserveTab = ({ spots, activeRes, onReserved, setTab, cfg }) => {
     if (!time || !date) { setErr("Selecione data e horário."); return; }
     const start = buildStart(date, time);
     const tStr  = `${String(start.getHours()).padStart(2,"0")}:${String(start.getMinutes()).padStart(2,"0")}`;
-    const dStr  = start.toISOString().split("T")[0];
+    const dStr  = `${start.getFullYear()}-${String(start.getMonth()+1).padStart(2,"0")}-${String(start.getDate()).padStart(2,"0")}`;
     setLoad(true); setErr("");
     try { await api.createRes(sel._id, tStr, dStr, placa, modelo); onReserved(); setTab("payment"); }
     catch (e) { setErr(e.message); } finally { setLoad(false); }
@@ -910,9 +910,22 @@ const PaymentTab = ({ activeRes, onPaid, cfg }) => {
 
   useEffect(() => {
     if (!activeRes || activeRes.status === "no_show") return;
-    const el = Math.max(0, Math.floor((new Date() - new Date(activeRes.startTime)) / 1000));
-    setSecs(el);
-    if (new Date() >= new Date(activeRes.startTime)) setRun(true);
+    const now       = new Date();
+    const startTime = new Date(activeRes.startTime);
+    const elapsed   = Math.floor((now.getTime() - startTime.getTime()) / 1000);
+
+    if (elapsed >= 0) {
+      // Já começou — se menos de 30s de diferença (latência de criação), começa do zero
+      setSecs(elapsed < 30 ? 0 : elapsed);
+      setRun(true);
+    } else {
+      // Reserva futura — aguarda até o horário exato
+      setSecs(0);
+      setRun(false);
+      const delay   = startTime.getTime() - now.getTime();
+      const timeout = setTimeout(() => { setSecs(0); setRun(true); }, delay);
+      return () => clearTimeout(timeout);
+    }
   }, [activeRes?._id]);
 
   useEffect(() => {
